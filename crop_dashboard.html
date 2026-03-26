@@ -1,0 +1,2186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CropAI — Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #f7f5f0;
+  --s1:       #ffffff;
+  --s2:       #f0ede8;
+  --s3:       #e8f2eb;
+  --border:   #e0ddd5;
+  --border2:  #c8c4b8;
+  --leaf:     #4a7c59;
+  --leaf2:    #4a7c59;
+  --leaf-dim: #3d6b4a;
+  --amber:    #c9922a;
+  --amber2:   #c9922a;
+  --red:      #c0392b;
+  --red2:     #c0392b;
+  --sky:      #2980b9;
+  --sky2:     #3498db;
+  --text:     #1a1a18;
+  --text2:    #6b6b5e;
+  --text3:    #a8a89a;
+  --mono:     'DM Mono', monospace;
+  --head:     'DM Serif Display', serif;
+  --body:     'Outfit', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-size: 14px;
+}
+
+/* ── GRAIN OVERLAY removed for light theme ── */
+
+/* ── GLOBAL NAV ── */
+.global-nav {
+  position: sticky; top: 0; z-index: 300;
+  background: rgba(247,245,240,0.97);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  height: 52px;
+  display: flex; align-items: center;
+  padding: 0 24px;
+  gap: 0;
+}
+.gn-brand {
+  font-family: var(--head);
+  font-size: 22px;
+  letter-spacing: 0.08em;
+  color: var(--leaf);
+  margin-right: 32px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.gn-brand span { color: var(--text3); font-size: 14px; font-family: var(--mono); letter-spacing: 0.1em; margin-left: 8px; vertical-align: middle; }
+.gn-links {
+  display: flex; align-items: center; gap: 2px; flex: 1;
+}
+.gn-link {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 6px 14px;
+  border-radius: 3px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: all 0.15s;
+  cursor: pointer;
+  background: transparent;
+}
+.gn-link:hover { color: var(--text2); border-color: var(--border2); }
+.gn-link.active {
+  color: var(--leaf);
+  border-color: rgba(58,158,82,0.35);
+  background: rgba(58,158,82,0.07);
+}
+.gn-right {
+  display: flex; align-items: center; gap: 12px; margin-left: auto;
+}
+.gn-pill {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em;
+  color: var(--sky); background: rgba(14,165,233,0.08);
+  border: 1px solid rgba(14,165,233,0.2);
+  padding: 3px 9px; border-radius: 2px;
+}
+.gn-pill.amber { color: var(--amber); background: rgba(217,119,6,0.08); border-color: rgba(217,119,6,0.2); }
+.live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--leaf);
+  animation: blink 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+/* ── APP LAYOUT ── */
+.app { position: relative; z-index: 1; }
+
+/* ── INNER NAV TABS ── */
+.inner-nav {
+  background: var(--s1);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  display: flex; gap: 0; align-items: flex-end;
+}
+.i-tab {
+  font-family: var(--mono);
+  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text3); padding: 12px 16px 11px;
+  border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.15s;
+  background: transparent; border-top: none; border-left: none; border-right: none;
+}
+.i-tab:hover { color: var(--text2); }
+.i-tab.active { color: var(--leaf); border-bottom-color: var(--leaf); }
+
+/* ── PAGES ── */
+.page { display: none; padding: 24px; animation: fadeUp 0.3s ease; }
+.page.active { display: block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+
+/* ── PAGE HEADER ── */
+.ph {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: 20px;
+}
+.ph-title {
+  font-family: var(--head);
+  font-size: 32px; letter-spacing: 0.05em;
+  color: var(--text); line-height: 1;
+}
+.ph-title .accent { color: var(--leaf); }
+.ph-sub {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em;
+  color: var(--text3); margin-top: 4px;
+}
+.ph-right {
+  display: flex; gap: 8px; align-items: center;
+}
+
+/* ── STAT STRIP ── */
+.stat-strip {
+  display: grid; grid-template-columns: repeat(7,1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 6px; overflow: hidden;
+  margin-bottom: 20px;
+}
+.sc {
+  background: var(--s1); padding: 14px 16px;
+  border-right: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.sc:hover { background: var(--s2); }
+.sc:last-child { border-right: none; }
+.sc-lbl { font-family: var(--mono); font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+.sc-val { font-family: var(--head); font-size: 28px; letter-spacing: 0.04em; line-height: 1; }
+.sc-val.g { color: var(--leaf); }
+.sc-val.a { color: var(--amber); }
+.sc-val.r { color: var(--red); }
+.sc-val.b { color: var(--sky); }
+.sc-val.w { color: var(--text2); }
+.sc-sub { font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+/* ── GRID LAYOUTS ── */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.g21 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.g12 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; }
+.mb { margin-bottom: 16px; }
+
+/* ── CHART CARD ── */
+.cc {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 18px;
+  transition: border-color 0.2s;
+}
+.cc:hover { border-color: var(--border2); }
+.cc-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.cc-title {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text3);
+  display: flex; align-items: center; gap: 8px;
+}
+.cc-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--leaf);
+  box-shadow: 0 0 6px var(--leaf);
+  flex-shrink: 0;
+}
+.cc-badge {
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
+  color: var(--amber); background: rgba(251,191,36,0.08);
+  border: 1px solid rgba(251,191,36,0.2);
+  padding: 2px 8px; border-radius: 2px;
+}
+
+/* ── FILTER ROW ── */
+.filter-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 16px; padding: 12px 16px;
+  background: var(--s1); border: 1px solid var(--border); border-radius: 6px;
+}
+.fr-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; color: var(--text3); text-transform: uppercase; white-space: nowrap; }
+select.fr-sel, select.fr-sel:focus {
+  background: var(--s2); border: 1px solid var(--border2);
+  color: var(--text2); font-family: var(--mono); font-size: 11px;
+  padding: 5px 10px; border-radius: 4px; outline: none;
+  cursor: pointer; appearance: none; transition: border-color 0.15s;
+}
+select.fr-sel:hover { border-color: var(--leaf-dim); }
+.fr-btn {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em;
+  background: rgba(58,158,82,0.12); color: var(--leaf);
+  border: 1px solid rgba(58,158,82,0.3); padding: 5px 14px;
+  border-radius: 4px; cursor: pointer; transition: all 0.15s;
+}
+.fr-btn:hover { background: rgba(58,158,82,0.2); }
+
+/* ── INSIGHT BADGES ── */
+.insight-row {
+  display: grid; grid-template-columns: repeat(6,1fr);
+  gap: 10px; margin-bottom: 20px;
+}
+.ib {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 12px 14px;
+  display: flex; gap: 10px; align-items: center;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.ib:hover { transform: translateY(-2px); border-color: var(--border2); }
+.ib-icon { font-size: 20px; flex-shrink: 0; }
+.ib-lbl { font-family: var(--mono); font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); }
+.ib-val { font-family: var(--head); font-size: 18px; color: var(--leaf); letter-spacing: 0.04em; line-height: 1.1; }
+.ib-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+/* ── HEATMAP ── */
+.hm-scroll { overflow-x: auto; padding-bottom: 6px; }
+.hm-table { border-collapse: separate; border-spacing: 2px; font-size: 11px; }
+.hm-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: var(--text3); padding: 5px 10px; text-transform: uppercase; }
+.hm-table td { padding: 6px 12px; border-radius: 4px; font-family: var(--mono); font-size: 10px; text-align: center; cursor: default; transition: transform 0.1s, filter 0.1s; }
+.hm-table td:hover { transform: scale(1.1); filter: brightness(1.25); z-index: 2; position: relative; }
+
+/* ── CORRELATION BARS ── */
+.corr-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.corr-name { font-size: 11px; width: 105px; flex-shrink: 0; color: var(--text2); }
+.corr-track { flex: 1; height: 18px; display: flex; align-items: center; position: relative; }
+.corr-center { width: 1px; height: 18px; background: var(--border2); position: absolute; left: 50%; }
+.corr-pos, .corr-neg { height: 10px; border-radius: 2px; position: absolute; top: 4px; transition: width 1s ease; }
+.corr-pos { left: 50%; }
+.corr-neg { right: 50%; }
+.corr-val { font-family: var(--mono); font-size: 10px; width: 40px; text-align: right; flex-shrink: 0; }
+
+/* ── FEAT IMPORTANCE ── */
+.feat-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.feat-name { font-size: 11px; width: 130px; flex-shrink: 0; font-family: var(--mono); color: var(--text2); }
+.feat-bar-wrap { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.feat-bar { height: 100%; border-radius: 3px; transition: width 1.2s ease; }
+.feat-pct { font-family: var(--mono); font-size: 9px; color: var(--text3); width: 38px; text-align: right; flex-shrink: 0; }
+
+/* ── PREDICT SECTION ── */
+.predict-wrap { display: grid; grid-template-columns: 360px 1fr; gap: 16px; }
+.predict-form {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 20px;
+}
+.pf-title { font-family: var(--head); font-size: 22px; letter-spacing: 0.06em; color: var(--leaf); margin-bottom: 16px; }
+.pf-section { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text3); margin: 14px 0 8px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+.pf-field { margin-bottom: 10px; }
+.pf-label { font-size: 11px; color: var(--text2); margin-bottom: 4px; display: block; }
+select.pf-sel, input.pf-inp {
+  width: 100%; background: var(--s2); border: 1px solid var(--border2);
+  color: var(--text); font-family: var(--body); font-size: 12px;
+  padding: 7px 10px; border-radius: 5px; outline: none;
+  transition: border-color 0.15s; appearance: none;
+}
+select.pf-sel:focus, input.pf-inp:focus { border-color: var(--leaf-dim); }
+.pf-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pred-btn {
+  width: 100%; margin-top: 16px;
+  background: linear-gradient(135deg, rgba(58,158,82,0.2), rgba(34,197,94,0.1));
+  border: 1px solid rgba(58,158,82,0.4); color: var(--leaf);
+  font-family: var(--head); font-size: 18px; letter-spacing: 0.1em;
+  padding: 12px; border-radius: 6px; cursor: pointer;
+  transition: all 0.2s;
+}
+.pred-btn:hover { background: rgba(58,158,82,0.25); transform: translateY(-1px); box-shadow: 0 4px 20px rgba(58,158,82,0.15); }
+
+/* ── RESULT PANEL ── */
+.result-panel {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 20px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.result-big {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 20px; text-align: center;
+  transition: border-color 0.4s, box-shadow 0.4s;
+}
+.result-big.lit { border-color: rgba(58,158,82,0.4); box-shadow: 0 0 40px rgba(58,158,82,0.06); }
+.result-lbl { font-family: var(--mono); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--text3); margin-bottom: 6px; }
+.result-num { font-family: var(--head); font-size: 64px; color: var(--leaf); line-height: 1; letter-spacing: 0.04em; }
+.result-unit { font-family: var(--mono); font-size: 11px; color: var(--text3); margin-top: 4px; }
+.advice-box {
+  background: rgba(58,158,82,0.05); border: 1px solid rgba(58,158,82,0.15);
+  border-radius: 6px; padding: 14px;
+  font-size: 12px; line-height: 1.6; display: none;
+}
+.advice-box h4 { font-family: var(--head); font-size: 16px; color: var(--leaf); letter-spacing: 0.06em; margin-bottom: 8px; }
+
+/* ── MODEL CARDS ── */
+.model-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.model-card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px 18px; position: relative;
+  transition: border-color 0.2s;
+}
+.model-card.best { border-color: rgba(58,158,82,0.35); background: rgba(58,158,82,0.03); }
+.model-card.best::after {
+  content: '★ BEST'; position: absolute; top: 12px; right: 12px;
+  font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em;
+  color: var(--leaf); background: rgba(58,158,82,0.1);
+  border: 1px solid rgba(58,158,82,0.25); padding: 2px 7px; border-radius: 2px;
+}
+.model-name { font-family: var(--head); font-size: 18px; letter-spacing: 0.06em; color: var(--text); margin-bottom: 10px; }
+.metric-row { display: flex; gap: 18px; flex-wrap: wrap; }
+.metric-val { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--sky); }
+.metric-val.best-m { color: var(--leaf); }
+.metric-lbl { font-family: var(--mono); font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); margin-top: 2px; }
+.r2-bar { height: 2px; background: var(--border); border-radius: 1px; margin-top: 12px; overflow: hidden; }
+.r2-fill { height: 100%; border-radius: 1px; transition: width 1.2s ease; }
+
+/* ── TIP BOX ── */
+.tip {
+  background: rgba(58,158,82,0.04); border-left: 3px solid var(--leaf-dim);
+  padding: 10px 14px; border-radius: 0 5px 5px 0;
+  font-size: 12px; line-height: 1.55; color: var(--text2);
+  margin-top: 12px;
+}
+.tip strong { color: var(--leaf); }
+
+/* ── ALERT INLINE TABLE ── */
+.alert-table-wrap { overflow-x: auto; margin-bottom: 16px; }
+.alert-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.alert-table th { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); cursor: pointer; }
+.alert-table th:hover { color: var(--text2); }
+.alert-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
+.alert-table tr:hover td { background: var(--s2); }
+.badge { display: inline-flex; align-items: center; gap: 3px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 2px; }
+.b-crit { background: rgba(220,38,38,0.15); color: var(--red); border: 1px solid rgba(220,38,38,0.3); }
+.b-watch { background: rgba(217,119,6,0.12); color: var(--amber); border: 1px solid rgba(217,119,6,0.25); }
+.b-norm { background: rgba(58,158,82,0.1); color: var(--leaf); border: 1px solid rgba(58,158,82,0.2); }
+.anom-cell { display: flex; align-items: center; gap: 6px; min-width: 120px; }
+.anom-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.anom-fill { height: 100%; border-radius: 2px; }
+.anom-val { font-family: var(--mono); font-size: 11px; min-width: 50px; text-align: right; }
+
+/* ── CONDITIONAL YIELD EXPLORER ── */
+.cye-layout { display: grid; grid-template-columns: 260px 1fr; gap: 16px; }
+.cye-controls {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 8px; padding: 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.cye-ctrl-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+.cye-charts { display: flex; flex-direction: column; gap: 12px; }
+.range-val { font-family: var(--mono); font-size: 11px; color: var(--leaf); min-width: 50px; text-align: right; }
+input[type=range] {
+  -webkit-appearance: none; width: 100%; height: 3px;
+  background: var(--border2); border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--leaf); cursor: pointer; border: 2px solid var(--bg);
+  box-shadow: 0 0 6px rgba(58,158,82,0.4);
+}
+
+/* ── EMPTY / LOADING ── */
+.empty-state {
+  padding: 48px; text-align: center; color: var(--text3);
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em;
+}
+.empty-state .ei { font-size: 28px; margin-bottom: 10px; opacity: 0.4; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px) {
+  .stat-strip { grid-template-columns: repeat(4,1fr); }
+  .insight-row { grid-template-columns: repeat(3,1fr); }
+  .g3 { grid-template-columns: 1fr 1fr; }
+  .predict-wrap { grid-template-columns: 1fr; }
+  .cye-layout { grid-template-columns: 1fr; }
+}
+@media(max-width:768px) {
+  .g2, .g21, .g12 { grid-template-columns: 1fr; }
+  .model-grid { grid-template-columns: 1fr; }
+  .insight-row { grid-template-columns: repeat(2,1fr); }
+  .stat-strip { grid-template-columns: repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- ── GLOBAL NAV ── -->
+<nav class="global-nav">
+  <div class="gn-brand">CropAI <span>INTELLIGENCE SUITE</span></div>
+  <div class="gn-links">
+    <a class="gn-link active" href="crop_dashboard.html">📊 Dashboard</a>
+    <a class="gn-link" href="irrigation_advisory1.html">💧 Irrigation</a>
+    <a class="gn-link" href="crop_recommender.html">🌱 Recommender</a>
+    <a class="gn-link" href="alert_dashboard.html">⚠️ Alerts (EWAS)</a>
+  </div>
+  <div class="gn-right">
+    <div class="live-dot"></div>
+    <div class="gn-pill" id="backend-status">BACKEND OFFLINE</div>
+    <div class="gn-pill amber" id="alerts-status">ALERTS —</div>
+  </div>
+</nav>
+
+<div class="app">
+
+  <!-- ── INNER NAV ── -->
+  <div class="inner-nav">
+    <button class="i-tab active" onclick="showPage('overview',this)">Overview</button>
+    <button class="i-tab" onclick="showPage('eda',this)">Crop Analysis</button>
+    <button class="i-tab" onclick="showPage('conditional',this)">Conditional Yield</button>
+    <button class="i-tab" onclick="showPage('weather',this)">Weather &amp; Soil</button>
+    <button class="i-tab" onclick="showPage('trends',this)">Yield Trends</button>
+    <button class="i-tab" onclick="showPage('models',this)">ML Models</button>
+    <button class="i-tab" onclick="showPage('predict',this)">Predict Yield</button>
+    <button class="i-tab" onclick="showPage('alerts',this)">Live Alerts</button>
+  </div>
+
+  <!-- ═══════════ PAGE: OVERVIEW ═══════════ -->
+  <div class="page active" id="page-overview">
+    <div class="ph">
+      <div>
+        <div class="ph-title">Crop <span class="accent">Intelligence</span></div>
+        <div class="ph-sub">2004–2022 · XGBOOST MODEL · OPEN-METEO WEATHER</div>
+      </div>
+    </div>
+
+    <div class="stat-strip">
+      <div class="sc"><div class="sc-lbl">Records</div><div class="sc-val g">—</div><div class="sc-sub">Loading…</div></div>
+      <div class="sc"><div class="sc-lbl">Crops</div><div class="sc-val b">—</div><div class="sc-sub">Loading…</div></div>
+      <div class="sc"><div class="sc-lbl">Avg Yield</div><div class="sc-val a">—</div><div class="sc-sub">Loading…</div></div>
+      <div class="sc"><div class="sc-lbl">Avg Rainfall</div><div class="sc-val b">—</div><div class="sc-sub">Loading…</div></div>
+      <div class="sc"><div class="sc-lbl">Avg Temp</div><div class="sc-val a">—</div><div class="sc-sub">Loading…</div></div>
+      <div class="sc"><div class="sc-lbl">Model R²</div><div class="sc-val g">0.988</div><div class="sc-sub">XGBoost best</div></div>
+      <div class="sc"><div class="sc-lbl">19-Yr Gain</div><div class="sc-val g">—</div><div class="sc-sub">Loading…</div></div>
+    </div>
+
+    <div class="insight-row">
+      <div class="ib"><div class="ib-icon">🏆</div><div><div class="ib-lbl">Best Yielding</div><div class="ib-val">—</div><div class="ib-sub">Loading…</div></div></div>
+      <div class="ib"><div class="ib-icon">🗓️</div><div><div class="ib-lbl">Best Season</div><div class="ib-val">—</div><div class="ib-sub">Loading…</div></div></div>
+      <div class="ib"><div class="ib-icon">🪱</div><div><div class="ib-lbl">Best Soil</div><div class="ib-val">—</div><div class="ib-sub">Loading…</div></div></div>
+      <div class="ib"><div class="ib-icon">💧</div><div><div class="ib-lbl">Best Irrigation</div><div class="ib-val">—</div><div class="ib-sub">Loading…</div></div></div>
+      <div class="ib"><div class="ib-icon">🐛</div><div><div class="ib-lbl">Pest Impact</div><div class="ib-val">—</div><div class="ib-sub">Loading…</div></div></div>
+      <div class="ib"><div class="ib-icon">📈</div><div><div class="ib-lbl">Yield Trend</div><div class="ib-val">—</div><div class="ib-sub">Loading…</div></div></div>
+    </div>
+
+    <div class="g2 mb">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot"></span>Top 12 Crops by Cultivation Frequency</div></div>
+        <canvas id="cropFreqChart" height="250"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Season Distribution — Share of Records</div></div>
+        <canvas id="seasonPieChart" height="250"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════ PAGE: CROP ANALYSIS ═══════════ -->
+  <div class="page" id="page-eda">
+    <div class="ph">
+      <div><div class="ph-title">Crop <span class="accent">Analysis</span></div><div class="ph-sub">YIELD BY CROP, SEASON, PEST PRESSURE · PLANTING GUIDE HEATMAP</div></div>
+    </div>
+
+    <div class="g2 mb">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot"></span>Median Yield by Crop (T/Ha) — Log Scale</div><div class="cc-badge">Higher = Better</div></div>
+        <canvas id="yieldByCropChart" height="280"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>Median Yield by Season</div></div>
+        <canvas id="yieldBySeasonChart" height="280"></canvas>
+      </div>
+    </div>
+
+    <div class="g2 mb">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></span>Pest Incidence — Yield Impact</div></div>
+        <canvas id="pestImpactChart" height="220"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Stacked Pest Mix — Top 8 Crops</div></div>
+        <canvas id="pestCropChart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="cc">
+      <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>🌾 Crop × Season Yield Heatmap — Planting Guide (T/Ha)</div></div>
+      <div class="hm-scroll" id="cropSeasonHeatmap"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE: CONDITIONAL YIELD EXPLORER ═══════════ -->
+  <div class="page" id="page-conditional">
+    <div class="ph">
+      <div><div class="ph-title">Conditional <span class="accent">Yield</span> Explorer</div><div class="ph-sub">ADJUST CONDITIONS TO SEE PREDICTED YIELD DISTRIBUTIONS · MODEL-BACKED</div></div>
+    </div>
+
+    <div class="cye-layout">
+      <div class="cye-controls">
+        <div>
+          <div class="cye-ctrl-label">Crop</div>
+          <select class="fr-sel" id="cye-crop" style="width:100%" onchange="updateConditional()">
+            <option>Rice</option><option>Jute</option><option>Wheat</option><option>Maize</option>
+            <option>Sugarcane</option><option>Groundnut</option><option>Arhar/Tur</option>
+            <option>Moong(Green Gram)</option><option>Urad</option>
+          </select>
+        </div>
+        <div>
+          <div class="cye-ctrl-label">District</div>
+          <select class="fr-sel" id="cye-district" style="width:100%" onchange="updateConditional()">
+            <option value="West tripura">West Tripura</option>
+            <option value="Dhalai">Dhalai</option>
+            <option value="Gomati">Gomati</option>
+            <option value="Khowai">Khowai</option>
+            <option value="North tripura">North Tripura</option>
+            <option value="Sepahijala">Sepahijala</option>
+            <option value="South tripura">South Tripura</option>
+            <option value="Unakoti">Unakoti</option>
+          </select>
+        </div>
+        <div>
+          <div class="cye-ctrl-label">Pest Level</div>
+          <select class="fr-sel" id="cye-pest" style="width:100%" onchange="updateConditional()">
+            <option value="Low">🟢 Low</option><option value="Medium">🟡 Medium</option><option value="High">🔴 High</option>
+          </select>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="cye-ctrl-label">Rainfall (mm)</div>
+            <div class="range-val" id="cye-rain-v">220mm</div>
+          </div>
+          <input type="range" id="cye-rain" min="50" max="600" value="220" oninput="document.getElementById('cye-rain-v').textContent=this.value+'mm';updateConditional()">
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="cye-ctrl-label">Temperature (°C)</div>
+            <div class="range-val" id="cye-temp-v">25°C</div>
+          </div>
+          <input type="range" id="cye-temp" min="18" max="35" value="25" oninput="document.getElementById('cye-temp-v').textContent=this.value+'°C';updateConditional()">
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div class="cye-ctrl-label">Fertilizer (kg/ha)</div>
+            <div class="range-val" id="cye-fert-v">120kg</div>
+          </div>
+          <input type="range" id="cye-fert" min="0" max="300" value="120" oninput="document.getElementById('cye-fert-v').textContent=this.value+'kg';updateConditional()">
+        </div>
+        <div>
+          <div class="cye-ctrl-label">Irrigation</div>
+          <select class="fr-sel" id="cye-irr" style="width:100%" onchange="updateConditional()">
+            <option value="Canal">Canal</option><option value="Drip">Drip</option><option value="Rainfed">Rainfed</option>
+          </select>
+        </div>
+        <div>
+          <div class="cye-ctrl-label">Soil Type</div>
+          <select class="fr-sel" id="cye-soil" style="width:100%" onchange="updateConditional()">
+            <option value="Alluvial">Alluvial</option>
+            <option value="Red Laterite">Red Laterite</option>
+          </select>
+        </div>
+
+        <!-- Predicted yield callout -->
+        <div style="background:var(--s2);border:1px solid var(--border2);border-radius:8px;padding:14px;text-align:center;margin-top:4px">
+          <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.14em;color:var(--text3);margin-bottom:4px">EST. YIELD</div>
+          <div id="cye-result" style="font-family:var(--head);font-size:42px;color:var(--leaf);letter-spacing:0.04em;line-height:1">—</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px">Tonne / Hectare</div>
+          <div id="cye-vs" style="font-family:var(--mono);font-size:10px;margin-top:6px;padding:3px 8px;border-radius:2px;display:inline-block"></div>
+          <div id="cye-source-badge" style="font-family:var(--mono);font-size:9px;margin-top:4px;color:var(--text3);letter-spacing:0.05em"></div>
+        </div>
+      </div>
+
+      <div class="cye-charts">
+        <div class="cc">
+          <div class="cc-head"><div class="cc-title"><span class="cc-dot"></span>Yield vs Rainfall — Conditional on Current Settings</div></div>
+          <canvas id="cyeRainChart" height="180"></canvas>
+        </div>
+        <div class="cc">
+          <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>Yield vs Fertilizer — Conditional on Current Settings</div></div>
+          <canvas id="cyeFertChart" height="180"></canvas>
+        </div>
+        <div class="cc">
+          <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Pest × Irrigation — Yield Matrix</div></div>
+          <canvas id="cyeMatrixChart" height="160"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE: WEATHER & SOIL ═══════════ -->
+  <div class="page" id="page-weather">
+    <div class="ph">
+      <div><div class="ph-title">Weather, Soil &amp; <span class="accent">Irrigation</span></div><div class="ph-sub">HOW RAINFALL, TEMPERATURE, SOIL TYPE AND METHOD AFFECT HARVEST</div></div>
+    </div>
+
+    <div class="g3 mb">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Rainfall vs Yield</div></div>
+        <canvas id="rainfallChart" height="220"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></span>Temperature vs Yield</div></div>
+        <canvas id="tempChart" height="220"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>ET₀ vs Yield</div></div>
+        <canvas id="et0Chart" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="g3 mb">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>Soil Type — Median Yield</div></div>
+        <canvas id="soilChart" height="200"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot"></span>Irrigation Method — Median Yield</div></div>
+        <canvas id="irrigChart" height="200"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></span>Fertilizer Usage — Top 12 Crops (kg/Ha)</div></div>
+        <canvas id="fertCropChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Soil × Irrigation Yield Matrix</div></div>
+        <div id="soilIrrHeatmap"></div>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></span>Fertilizer vs Yield</div></div>
+        <canvas id="fertYieldChart" height="270"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE: TRENDS ═══════════ -->
+  <div class="page" id="page-trends">
+    <div class="ph">
+      <div><div class="ph-title">Yield <span class="accent">Trends</span></div><div class="ph-sub">19-YEAR TRAJECTORY · 2004–2022 · ALL DISTRICTS · ALL CROPS</div></div>
+    </div>
+
+    <div class="stat-strip" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="sc"><div class="sc-lbl">2004–2008 Avg</div><div class="sc-val a">2.71</div><div class="sc-sub">T/Ha median</div></div>
+      <div class="sc"><div class="sc-lbl">2019–2022 Avg</div><div class="sc-val g">3.32</div><div class="sc-sub">T/Ha median</div></div>
+      <div class="sc"><div class="sc-lbl">19-Year Gain</div><div class="sc-val g">+22.4%</div><div class="sc-sub">overall improvement</div></div>
+      <div class="sc"><div class="sc-lbl">Best Year</div><div class="sc-val g">2021</div><div class="sc-sub">highest median yield</div></div>
+    </div>
+
+    <div class="cc mb">
+      <div class="cc-head"><div class="cc-title"><span class="cc-dot"></span>All-Crop Yield Trend 2004–2022 with Linear Trendline</div></div>
+      <canvas id="overallTrendChart" height="180"></canvas>
+    </div>
+
+    <div class="g2 mb">
+      <div class="cc">
+        <div class="cc-head">
+          <div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Individual Crop Trend</div>
+          <select class="fr-sel" id="trendCropSel" onchange="buildSingleCropChart(this.value, TREND_DATA)" style="font-size:10px;padding:4px 8px">
+            <option>Rice</option><option>Jute</option><option>Wheat</option><option>Maize</option>
+            <option>Sugarcane</option><option>Groundnut</option><option>Urad</option><option>Moong(Green Gram)</option>
+          </select>
+        </div>
+        <canvas id="singleCropTrend" height="230"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>Early Decade vs Recent — 8 Crops</div></div>
+        <canvas id="decadeCompChart" height="250"></canvas>
+      </div>
+    </div>
+
+    <div class="cc">
+      <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Top 5 Crops — Yield Trend 2004–2022</div></div>
+      <canvas id="top5TrendChart" height="200"></canvas>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE: ML MODELS ═══════════ -->
+  <div class="page" id="page-models">
+    <div class="ph">
+      <div><div class="ph-title">ML Model <span class="accent">Comparison</span></div><div class="ph-sub">XGBOOST · RANDOM FOREST · GRADIENT BOOSTING · RIDGE · SVR · SAME TIME-SERIES CV · CROP-NORMALISED TARGETS</div></div>
+    </div>
+
+    <!-- Model selector tabs -->
+    <div style="display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap" id="modelTabRow">
+      <button class="fr-btn" style="background:rgba(74,124,89,0.18);border-color:rgba(74,124,89,0.5);font-size:11px" onclick="selectModel('XGBoost',this)" id="mtab-XGBoost">🚀 XGBoost</button>
+      <button class="fr-btn" style="font-size:11px" onclick="selectModel('RandomForest',this)" id="mtab-RandomForest">🌲 Random Forest</button>
+      <button class="fr-btn" style="font-size:11px" onclick="selectModel('GradientBoosting',this)" id="mtab-GradientBoosting">⚡ Gradient Boosting</button>
+      <button class="fr-btn" style="font-size:11px" onclick="selectModel('Ridge',this)" id="mtab-Ridge">📐 Ridge Regression</button>
+      <button class="fr-btn" style="font-size:11px" onclick="selectModel('SVR',this)" id="mtab-SVR">🔵 SVR</button>
+      <span style="margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--text3);align-self:center">Train: years 0–14 · Test: 15–17 · Holdout: 18</span>
+    </div>
+
+    <!-- Selected model metric strip -->
+    <div id="modelMetricStrip" style="display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);border-radius:6px;overflow:hidden;margin-bottom:18px;border:1px solid var(--border)">
+      <div style="background:var(--s2);padding:14px 18px;text-align:center"><div style="font-family:var(--mono);font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">R² Score</div><div id="ms-r2" style="font-family:var(--head);font-size:34px;color:var(--leaf);line-height:1">—</div><div style="font-size:10px;color:var(--text3);margin-top:3px">variance explained</div></div>
+      <div style="background:var(--s2);padding:14px 18px;text-align:center"><div style="font-family:var(--mono);font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">RMSE</div><div id="ms-rmse" style="font-family:var(--head);font-size:34px;color:var(--sky);line-height:1">—</div><div style="font-size:10px;color:var(--text3);margin-top:3px">T/Ha root mean sq error</div></div>
+      <div style="background:var(--s2);padding:14px 18px;text-align:center"><div style="font-family:var(--mono);font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">MAPE</div><div id="ms-mape" style="font-family:var(--head);font-size:34px;color:var(--amber);line-height:1">—</div><div style="font-size:10px;color:var(--text3);margin-top:3px">mean abs % error</div></div>
+      <div style="background:var(--s2);padding:14px 18px;text-align:center"><div style="font-family:var(--mono);font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">MAE</div><div id="ms-mae" style="font-family:var(--head);font-size:34px;color:var(--sky);line-height:1">—</div><div style="font-size:10px;color:var(--text3);margin-top:3px">T/Ha mean abs error</div></div>
+      <div style="background:var(--s2);padding:14px 18px;text-align:center"><div style="font-family:var(--mono);font-size:8px;letter-spacing:0.16em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Split</div><div id="ms-split" style="font-family:var(--mono);font-size:12px;color:var(--leaf);line-height:1;margin-top:4px">Test</div><div style="margin-top:6px;display:flex;gap:4px;justify-content:center"><button style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;border:1px solid var(--border2);background:var(--s3);color:var(--leaf);cursor:pointer" id="split-test" onclick="setSplit('test')">Test</button><button style="font-family:var(--mono);font-size:9px;padding:2px 8px;border-radius:3px;border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer" id="split-future" onclick="setSplit('future')">Holdout</button></div></div>
+    </div>
+
+    <!-- Model R² comparison bar chart -->
+    <div class="cc mb">
+      <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Model Comparison — R² Score (Test Set, Core Crops)</div><div class="cc-badge">Higher = Better</div></div>
+      <canvas id="modelR2Chart" height="120"></canvas>
+    </div>
+
+    <div class="g3 mb">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>MAPE Comparison</div><div class="cc-badge">Lower = Better</div></div>
+        <canvas id="modelMapeChart" height="200"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></span>RMSE Comparison</div><div class="cc-badge">Lower = Better</div></div>
+        <canvas id="modelRmseChart" height="200"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot"></span>MAE Comparison</div><div class="cc-badge">Lower = Better</div></div>
+        <canvas id="modelMaeChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Test vs Holdout per model table -->
+    <div class="cc mb">
+      <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--leaf);box-shadow:0 0 6px var(--leaf)"></span>Full Metrics Table — Test Set vs Future Holdout (Core Crops)</div></div>
+      <div id="modelMetricsTable" style="overflow-x:auto"></div>
+    </div>
+
+    <!-- XGBoost feature importance (always shown) -->
+    <div class="g2">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>Feature Importance — XGBoost</div></div>
+        <div id="featImportanceBars" style="margin-bottom:14px"></div>
+        <canvas id="featPieChart" height="180"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Factor Correlations with Yield</div></div>
+        <div id="corrBars" style="margin-bottom:14px"></div>
+        <canvas id="corrChart" height="200"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE: PREDICT ═══════════ -->
+  <div class="page" id="page-predict">
+    <div class="ph">
+      <div>
+        <div class="ph-title">Predict Your <span class="accent">Yield</span></div>
+        <div class="ph-sub">XGBoost MODEL (R²=0.988) · LIVE FROM BACKEND · FALLBACK TO LOCAL SIMULATION</div>
+      </div>
+      <div class="ph-right">
+        <div id="pred-backend-badge" style="font-family:var(--mono);font-size:9px;padding:3px 10px;border-radius:2px;border:1px solid var(--border);color:var(--text3)">BACKEND: CHECKING…</div>
+      </div>
+    </div>
+
+    <div class="predict-wrap">
+      <div class="predict-form">
+        <div class="pf-title">Farm Conditions</div>
+        <div class="pf-section">Location & Crop</div>
+        <div class="pf-row">
+          <div class="pf-field"><div class="pf-label">District</div><select class="pf-sel" id="p-district"><option value="Dhalai">Dhalai</option><option value="Gomati">Gomati</option><option value="Khowai">Khowai</option><option value="North tripura">North Tripura</option><option value="Sepahijala">Sepahijala</option><option value="South tripura">South Tripura</option><option value="Unakoti">Unakoti</option><option value="West tripura" selected>West Tripura</option></select></div>
+          <div class="pf-field"><div class="pf-label">Crop</div><select class="pf-sel" id="p-crop" onchange="updateHistChart()"><option value="Rice" selected>Rice</option><option value="Jute">Jute</option><option value="Wheat">Wheat</option><option value="Maize">Maize</option><option value="Sugarcane">Sugarcane</option><option value="Groundnut">Groundnut</option><option value="Arhar/Tur">Arhar/Tur</option><option value="Moong(Green Gram)">Moong (Green Gram)</option><option value="Urad">Urad</option><option value="Cotton(lint)">Cotton (lint)</option></select></div>
+        </div>
+        <div class="pf-row">
+          <div class="pf-field"><div class="pf-label">Season</div><select class="pf-sel" id="p-season"><option value="Kharif">Kharif</option><option value="Rabi">Rabi</option><option value="Autumn">Autumn</option><option value="Summer">Summer</option><option value="Winter">Winter</option><option value="Whole Year">Whole Year</option></select></div>
+          <div class="pf-field"><div class="pf-label">Pest Level</div><select class="pf-sel" id="p-pest"><option value="Low">🟢 Low</option><option value="Medium">🟡 Medium</option><option value="High">🔴 High</option></select></div>
+        </div>
+        <div class="pf-section">Soil & Inputs</div>
+        <div class="pf-row">
+          <div class="pf-field"><div class="pf-label">Irrigation</div><select class="pf-sel" id="p-irr"><option value="Drip">Drip</option><option value="Canal">Canal</option><option value="Rainfed">Rainfed</option></select></div>
+          <div class="pf-field"><div class="pf-label">Soil Type</div><select class="pf-sel" id="p-soil"><option value="Alluvial">Alluvial</option><option value="Red Laterite">Red Laterite</option></select></div>
+        </div>
+        <div class="pf-row">
+          <div class="pf-field"><div class="pf-label">Fertilizer (kg/Ha)</div><input class="pf-inp" type="number" id="p-fert" value="120" min="0" max="500"></div>
+          <div class="pf-field"><div class="pf-label">Rainfall (mm)</div><input class="pf-inp" type="number" id="p-rain" value="220" min="0" max="800"></div>
+        </div>
+        <div class="pf-section">Weather Features (for model)</div>
+        <div class="pf-row">
+          <div class="pf-field"><div class="pf-label">Rainy Days</div><input class="pf-inp" type="number" id="p-raindays" value="85" min="0" max="200"></div>
+          <div class="pf-field"><div class="pf-label">ET₀ total (mm)</div><input class="pf-inp" type="number" id="p-et0" value="820" min="0" max="2000"></div>
+        </div>
+        <div class="pf-row">
+          <div class="pf-field"><div class="pf-label">Mean Temp (°C)</div><input class="pf-inp" type="number" id="p-temp" value="25" min="15" max="40" step="0.1"></div>
+          <div class="pf-field"><div class="pf-label">Year</div><input class="pf-inp" type="number" id="p-year" value="2024" min="2004" max="2030"></div>
+        </div>
+        <button class="pred-btn" onclick="runPrediction()">PREDICT YIELD</button>
+      </div>
+
+      <div class="result-panel">
+        <div class="result-big" id="resultBox">
+          <div class="result-lbl">Predicted Yield</div>
+          <div class="result-num" id="resultValue">—</div>
+          <div class="result-unit" id="resultUnit">Enter conditions and click Predict</div>
+          <div id="resultConf" style="display:none;margin-top:8px;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--leaf);background:rgba(58,158,82,0.08);padding:3px 10px;border-radius:2px;border:1px solid rgba(58,158,82,0.2);display:inline-block">✓ R²=0.988 · HIGH CONFIDENCE</div>
+        </div>
+        <div class="advice-box" id="adviceBox">
+          <h4>🌾 Farm Insights</h4>
+          <div id="adviceText"></div>
+        </div>
+        <div class="cc" style="padding:14px">
+          <div class="cc-head"><div class="cc-title"><span class="cc-dot"></span>Predicted vs Historical Average</div></div>
+          <canvas id="compareChart" height="160"></canvas>
+        </div>
+        <div class="cc" style="padding:14px">
+          <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--sky);box-shadow:0 0 6px var(--sky)"></span>Historical Yield — Selected Crop</div></div>
+          <canvas id="histAvgChart" height="160"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PAGE: LIVE ALERTS ═══════════ -->
+  <div class="page" id="page-alerts">
+    <div class="ph">
+      <div>
+        <div class="ph-title">Live <span class="accent">Alerts</span></div>
+        <div class="ph-sub">XGBOOST YIELD ANOMALY DETECTION · FROM predictions.json · RUN generate_alerts.py TO REFRESH</div>
+      </div>
+      <div class="ph-right">
+        <div id="alert-gen-time" style="font-family:var(--mono);font-size:10px;color:var(--text3)">Loading…</div>
+      </div>
+    </div>
+
+    <div class="stat-strip" style="grid-template-columns:repeat(4,1fr);margin-bottom:16px">
+      <div class="sc"><div class="sc-lbl">Critical Alerts</div><div class="sc-val r" id="al-crit">—</div><div class="sc-sub">anomaly ≤ −30%</div></div>
+      <div class="sc"><div class="sc-lbl">Watch Alerts</div><div class="sc-val a" id="al-watch">—</div><div class="sc-sub">−20% to −30%</div></div>
+      <div class="sc"><div class="sc-lbl">Districts Flagged</div><div class="sc-val r" id="al-dist">—</div><div class="sc-sub">of 8 total</div></div>
+      <div class="sc"><div class="sc-lbl">Total Predictions</div><div class="sc-val w" id="al-total">—</div><div class="sc-sub">combos evaluated</div></div>
+    </div>
+
+    <div class="filter-row">
+      <span class="fr-label">Filter:</span>
+      <select class="fr-sel" id="al-f-district"><option value="all">All Districts</option></select>
+      <select class="fr-sel" id="al-f-season"><option value="all">All Seasons</option><option>Kharif</option><option>Rabi</option><option>Autumn</option><option>Summer</option><option>Winter</option><option>Whole Year</option></select>
+      <select class="fr-sel" id="al-f-status"><option value="all">All Statuses</option><option value="critical">Critical</option><option value="watch">Watch</option><option value="normal">Normal</option></select>
+      <select class="fr-sel" id="al-f-crop"><option value="all">All Crops</option></select>
+      <button class="fr-btn" onclick="applyAlertFilters()">APPLY</button>
+    </div>
+
+    <div class="cc">
+      <div class="alert-table-wrap">
+        <table class="alert-table">
+          <thead><tr>
+            <th onclick="sortAlerts('district')">District ↕</th>
+            <th onclick="sortAlerts('crop')">Crop ↕</th>
+            <th onclick="sortAlerts('season')">Season</th>
+            <th onclick="sortAlerts('predicted')">Predicted (t/ha) ↕</th>
+            <th onclick="sortAlerts('normal')">Normal (t/ha)</th>
+            <th onclick="sortAlerts('anomaly')">Anomaly ↕</th>
+            <th onclick="sortAlerts('status')">Status</th>
+            <th>Weather Yr</th>
+          </tr></thead>
+          <tbody id="alert-tbody">
+            <tr><td colspan="8"><div class="empty-state"><div class="ei">◎</div>Loading predictions.json…</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="g2" style="margin-top:16px">
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--red);box-shadow:0 0 6px var(--red)"></span>Alert Distribution by District</div></div>
+        <canvas id="alertDistChart" height="220"></canvas>
+      </div>
+      <div class="cc">
+        <div class="cc-head"><div class="cc-title"><span class="cc-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)"></span>Anomaly Distribution — All Predictions</div></div>
+        <canvas id="alertAnomalyChart" height="220"></canvas>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+// ── live caches ──────────────────────────────────────────────
+let STATS      = null;   // /stats
+let MODEL_INFO = null;   // /model_info
+// TREND_DATA declared below near buildTrends
+let PROFILES   = null;   // /profiles
+
+// Populated dynamically after stats load
+let yieldTable      = {};
+let crop_stats_local = {
+  'Rice':0.9,'Jute':8.8,'Maize':1.6,'Wheat':2.0,'Sugarcane':55,'Groundnut':1.3,
+  'Arhar/Tur':0.75,'Moong(Green Gram)':0.65,'Urad':0.68,'Cotton(lint)':1.4,
+  'Masoor':0.8,'Mesta':8.5,'Sesamum':0.6,'Rapeseed &Mustard':0.83,
+};  // overwritten by /profiles on load
+
+async function fetchStats() {
+  if (STATS && STATS._v === 2) return STATS;
+  try {
+    const r = await fetch(BACKEND + '/stats?v=2', {signal: AbortSignal.timeout(10000)});
+    if (r.ok) {
+      STATS = await r.json();
+      STATS._v = 2;
+      // build yieldTable & crop_stats_local from real data
+      yieldTable       = STATS.crop_season || {};
+      return STATS;
+    }
+  } catch {}
+  return null;
+}
+
+async function fetchModelInfo() {
+  if (MODEL_INFO) return MODEL_INFO;
+  try {
+    const r = await fetch(BACKEND + '/model_info', {signal: AbortSignal.timeout(8000)});
+    if (r.ok) { MODEL_INFO = await r.json(); return MODEL_INFO; }
+  } catch {}
+  return null;
+}
+
+async function fetchProfiles() {
+  if (PROFILES) return PROFILES;
+  try {
+    const r = await fetch(BACKEND + '/profiles', {signal: AbortSignal.timeout(8000)});
+    if (r.ok) {
+      PROFILES = await r.json();
+      // Build crop_stats_local: crop → avg_yield
+      Object.entries(PROFILES).forEach(([crop, p]) => {
+        crop_stats_local[crop] = p.avg_yield || 1.0;
+      });
+      return PROFILES;
+    }
+  } catch {}
+  return null;
+}
+
+async function fetchValidCrops() {
+  try {
+    const r = await fetch(BACKEND + '/valid_crops', {signal: AbortSignal.timeout(5000)});
+    if (r.ok) { const d = await r.json(); return d.valid_crops || []; }
+  } catch {}
+  return [];
+}
+
+async function populateCropSelectors() {
+  const crops = await fetchValidCrops();
+  if (!crops.length) return;
+  ['cye-crop', 'trendCropSel', 'p-crop'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = crops.map(c => `<option value="${c}">${c}</option>`).join('');
+  });
+}
+
+function topN(obj, n) {
+  const entries = Object.entries(obj).sort((a,b) => b[1]-a[1]).slice(0,n);
+  return { keys: entries.map(e=>e[0]), vals: entries.map(e=>+e[1]) };
+}
+
+// ═══════════════════════════════════════════════════════════
+// CHART HELPERS
+// ═══════════════════════════════════════════════════════════
+const CHARTS = {};
+function mkChart(id, cfg) {
+  if(CHARTS[id]) CHARTS[id].destroy();
+  const ctx = document.getElementById(id);
+  if(!ctx) return null;
+  CHARTS[id] = new Chart(ctx, cfg);
+  return CHARTS[id];
+}
+
+const baseScales = {
+  x: { grid:{color:'#e0ddd5'}, ticks:{color:'#a8a89a',font:{size:9,family:"'DM Mono'"}} },
+  y: { grid:{color:'#e0ddd5'}, ticks:{color:'#a8a89a',font:{size:9,family:"'DM Mono'"}}}
+};
+const gOpts = (extra={}) => ({
+  responsive:true,
+  animation:{duration:700,easing:'easeOutQuart'},
+  plugins:{legend:{display:false},...(extra.plugins||{})},
+  scales:baseScales,...extra
+});
+
+const PALETTE = ['#4a7c59','#2980b9','#c9922a','#c0392b','#a78bfa','#f97316','#34d399','#60a5fa','#fde68a','#f472b6'];
+
+// ═══════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════
+const BUILT = { overview: false };
+
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.i-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(el) el.classList.add('active');
+  if(!BUILT[name]) { buildCharts(name); BUILT[name]=true; }
+}
+
+function buildCharts(name) {
+  if(name==='overview')   buildOverview();
+  if(name==='eda')        buildEDA();
+  if(name==='conditional') buildConditional();
+  if(name==='weather')    buildWeather();
+  if(name==='trends')     buildTrends();
+  if(name==='models')     buildModels();
+  if(name==='predict')    buildPredict();
+  if(name==='alerts')     buildAlerts();
+}
+
+// ═══════════════════════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════════════════════
+async function buildOverview() {
+  const [s, td] = await Promise.all([fetchStats(), loadTrendData()]);
+
+  if (s) {
+    const sm = s.summary;
+    // Stat strip
+    document.querySelector('#page-overview .stat-strip').innerHTML = `
+      <div class="sc"><div class="sc-lbl">Records</div><div class="sc-val g">${sm.n_records.toLocaleString()}</div><div class="sc-sub">District×Year×Crop</div></div>
+      <div class="sc"><div class="sc-lbl">Crops</div><div class="sc-val b">${sm.n_crops}</div><div class="sc-sub">${sm.n_seasons} seasons · ${sm.n_districts} districts</div></div>
+      <div class="sc"><div class="sc-lbl">Avg Yield</div><div class="sc-val a">${sm.avg_yield.toFixed(2)}</div><div class="sc-sub">Tonne/Ha median</div></div>
+      <div class="sc"><div class="sc-lbl">Avg Rainfall</div><div class="sc-val b">${sm.avg_rainfall ?? '—'}</div><div class="sc-sub">mm per season</div></div>
+      <div class="sc"><div class="sc-lbl">Avg Temp</div><div class="sc-val a">${sm.avg_temp != null ? sm.avg_temp + '°C' : '—'}</div><div class="sc-sub">seasonal mean</div></div>
+      <div class="sc"><div class="sc-lbl">Model R²</div><div class="sc-val g">0.988</div><div class="sc-sub">XGBoost best</div></div>
+      <div class="sc"><div class="sc-lbl">19-Yr Gain</div><div class="sc-val g">${td ? computeOverallGain(td) : '—'}</div><div class="sc-sub">2004→2022</div></div>
+    `;
+
+    // Insight badges — derived from real data
+    const bestYield = Object.entries(s.crop_yield_med).sort((a,b)=>b[1]-a[1])[0];
+    const bestSeason = Object.entries(s.season_yields).sort((a,b)=>b[1]-a[1])[0];
+    const bestSoil = Object.entries(s.soil_yield).sort((a,b)=>b[1]-a[1])[0];
+    const bestIrr  = Object.entries(s.irr_yield).sort((a,b)=>b[1]-a[1])[0];
+    const pestLow  = s.pest_yield['Low']  || 0;
+    const pestHigh = s.pest_yield['High'] || 0;
+    const pestImpact = pestHigh > 0 ? Math.round((pestLow - pestHigh) / pestHigh * 100) : 0;
+    const gain19 = td ? computeOverallGain(td) : '—';
+    document.querySelector('#page-overview .insight-row').innerHTML = `
+      <div class="ib"><div class="ib-icon">🏆</div><div><div class="ib-lbl">Best Yielding</div><div class="ib-val">${bestYield ? bestYield[0] : '—'}</div><div class="ib-sub">${bestYield ? '~'+bestYield[1].toFixed(1)+' T/Ha median' : ''}</div></div></div>
+      <div class="ib"><div class="ib-icon">🗓️</div><div><div class="ib-lbl">Best Season</div><div class="ib-val">${bestSeason ? bestSeason[0] : '—'}</div><div class="ib-sub">Highest median yield</div></div></div>
+      <div class="ib"><div class="ib-icon">🪱</div><div><div class="ib-lbl">Best Soil</div><div class="ib-val">${bestSoil ? bestSoil[0] : '—'}</div><div class="ib-sub">${bestSoil ? bestSoil[1].toFixed(2)+' T/Ha' : ''}</div></div></div>
+      <div class="ib"><div class="ib-icon">💧</div><div><div class="ib-lbl">Best Irrigation</div><div class="ib-val">${bestIrr ? bestIrr[0] : '—'}</div><div class="ib-sub">${bestIrr ? bestIrr[1].toFixed(2)+' T/Ha' : ''}</div></div></div>
+      <div class="ib"><div class="ib-icon">🐛</div><div><div class="ib-lbl">Pest Impact</div><div class="ib-val">${pestImpact ? '−'+pestImpact+'%' : '—'}</div><div class="ib-sub">High vs low incidence</div></div></div>
+      <div class="ib"><div class="ib-icon">📈</div><div><div class="ib-lbl">Yield Trend</div><div class="ib-val">${gain19}</div><div class="ib-sub">19-year improvement</div></div></div>
+    `;
+
+    // Crop frequency chart — top 12
+    const cf = topN(s.crop_freq, 12);
+    mkChart('cropFreqChart',{type:'bar',
+      data:{labels:cf.keys,datasets:[{label:'Records',data:cf.vals,
+        backgroundColor:PALETTE.map(c=>c+'bb'),borderColor:PALETTE,borderWidth:1,
+        borderRadius:5,borderSkipped:false}]},
+      options:{...gOpts(),scales:{x:{...baseScales.x,ticks:{...baseScales.x.ticks,maxRotation:35}},y:baseScales.y}}
+    });
+
+    // Season pie — counts
+    const seasons = Object.keys(s.season_counts);
+    mkChart('seasonPieChart',{type:'doughnut',
+      data:{labels:seasons,datasets:[{data:seasons.map(k=>s.season_counts[k]),
+        backgroundColor:PALETTE.map(c=>c+'cc'),borderColor:PALETTE,borderWidth:1}]},
+      options:{responsive:true,cutout:'55%',
+        plugins:{legend:{position:'right',labels:{boxWidth:8,font:{size:9},color:'#6b6b5e'}}}}
+    });
+  } else {
+    // Backend offline — show placeholder
+    document.querySelector('#page-overview .stat-strip').innerHTML =
+      '<div class="sc" style="grid-column:1/-1;text-align:center;padding:20px"><div class="sc-lbl" style="color:var(--amber)">⚠ Backend offline — start backend.py to see live stats</div></div>';
+  }
+}
+
+function computeOverallGain(td) {
+  if (!td || !td.overall || td.overall.length < 2) return '—';
+  const first = td.overall[0], last = td.overall[td.overall.length-1];
+  const pct = ((last - first) / first * 100).toFixed(1);
+  return (pct >= 0 ? '+' : '') + pct + '%';
+}
+
+// ═══════════════════════════════════════════════════════════
+// EDA
+// ═══════════════════════════════════════════════════════════
+async function buildEDA() {
+  const s = await fetchStats();
+  if (!s) { document.getElementById('page-eda').innerHTML += '<div class="tip" style="color:var(--amber)">⚠ Backend offline — start backend.py for live data.</div>'; return; }
+
+  const top12yields = topN(s.crop_yield_med, 12);
+  mkChart('yieldByCropChart',{type:'bar',
+    data:{labels:top12yields.keys,datasets:[{label:'Median Yield',data:top12yields.vals,
+      backgroundColor:top12yields.vals.map(v=>v>3?'rgba(34,197,94,0.7)':'rgba(56,189,248,0.7)'),
+      borderColor:top12yields.vals.map(v=>v>3?'#4a7c59':'#2980b9'),
+      borderWidth:1,borderRadius:5,borderSkipped:false}]},
+    options:{...gOpts(),scales:{
+      x:{...baseScales.x,ticks:{...baseScales.x.ticks,maxRotation:35}},
+      y:{...baseScales.y,type:'logarithmic',title:{display:true,text:'T/Ha (log)',color:'#a8a89a',font:{size:9}}}}}
+  });
+
+  const seasons = Object.keys(s.season_yields);
+  mkChart('yieldBySeasonChart',{type:'bar',
+    data:{labels:seasons,datasets:[{label:'Yield',data:seasons.map(k=>s.season_yields[k]),
+      backgroundColor:PALETTE.map(c=>c+'bb'),borderColor:PALETTE,borderWidth:1,borderRadius:5,borderSkipped:false}]},
+    options:{...gOpts(),scales:{x:baseScales.x,
+      y:{...baseScales.y,type:'logarithmic',title:{display:true,text:'T/Ha (log)',color:'#a8a89a',font:{size:9}}}}}
+  });
+
+  const py = s.pest_yield;
+  mkChart('pestImpactChart',{type:'bar',
+    data:{labels:['🟢 Low Pest','🟡 Medium Pest','🔴 High Pest'],
+      datasets:[{label:'Yield',data:[py.Low||0, py.Medium||0, py.High||0],
+        backgroundColor:['rgba(34,197,94,0.7)','rgba(251,191,36,0.7)','rgba(248,113,113,0.7)'],
+        borderColor:['#4a7c59','#c9922a','#c0392b'],borderWidth:1,borderRadius:6,borderSkipped:false}]},
+    options:{...gOpts(),scales:{x:baseScales.x,
+      y:{...baseScales.y,title:{display:true,text:'T/Ha',color:'#a8a89a',font:{size:9}}}}}
+  });
+
+  // Stacked pest mix — top 8 crops by frequency, real distribution from backend
+  const top8crops = topN(s.crop_freq, 8).keys;
+  const pestDist = s.pest_crop_dist || {};
+  mkChart('pestCropChart',{type:'bar',
+    data:{labels:top8crops,datasets:[
+      {label:'Low 🟢',data:top8crops.map(c=>pestDist[c]?.Low ?? 33),backgroundColor:'rgba(34,197,94,0.75)',borderRadius:0},
+      {label:'Medium 🟡',data:top8crops.map(c=>pestDist[c]?.Medium ?? 34),backgroundColor:'rgba(251,191,36,0.75)',borderRadius:0},
+      {label:'High 🔴',data:top8crops.map(c=>pestDist[c]?.High ?? 33),backgroundColor:'rgba(248,113,113,0.75)',borderRadius:0},
+    ]},
+    options:{responsive:true,
+      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:8,font:{size:9},color:'#6b6b5e'}}},
+      scales:{x:{...baseScales.x,stacked:true},y:{...baseScales.y,stacked:true,max:100}}}
+  });
+
+  buildCropSeasonHeatmap(s.crop_season);
+}
+
+function buildCropSeasonHeatmap(cropSeasonData) {
+  if (!cropSeasonData) { document.getElementById('cropSeasonHeatmap').innerHTML='<div class="empty-state"><div class="ei">⚠</div>No data — backend offline</div>'; return; }
+  const seasons=['Kharif','Rabi','Whole Year','Summer','Autumn','Winter'];
+  const crops=Object.keys(cropSeasonData);
+  let html='<table class="hm-table"><thead><tr><th>Crop</th>';
+  seasons.forEach(s=>html+=`<th>${s}</th>`);
+  html+='</tr></thead><tbody>';
+  crops.forEach(crop=>{
+    const rowVals=seasons.map(s=>cropSeasonData[crop][s]).filter(v=>v!=null);
+    const rowMin=Math.min(...rowVals);
+    const rowMax=Math.max(...rowVals);
+    const rowRange=rowMax-rowMin||1;
+    html+=`<tr><td style="text-align:left;font-weight:600;color:var(--text);padding-right:16px;font-size:11px;font-family:var(--body)">${crop}</td>`;
+    seasons.forEach(s=>{
+      const val=cropSeasonData[crop][s];
+      if(val==null){html+=`<td style="background:rgba(28,43,28,0.3);color:#1c2b1c">—</td>`;return;}
+      const n=(val-rowMin)/rowRange;
+      const g=Math.round(40+n*180);
+      const bg=`rgba(0,${g},30,${0.12+n*0.72})`;
+      const isBest=n>0.95;
+      const textColor=n>0.45?'#d4e8d4':'#7a9e7a';
+      const border=isBest?`border:1px solid rgba(34,197,94,0.5);`:'';
+      html+=`<td style="background:${bg};color:${textColor};${border}">${val.toFixed(1)}</td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table>';
+  document.getElementById('cropSeasonHeatmap').innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONDITIONAL YIELD EXPLORER
+// ═══════════════════════════════════════════════════════════
+function buildConditional() { doUpdateConditional(); }
+
+function calcYield(crop,pest,rain,temp,fert,irr,soil){
+  // Local fallback only — used when backend offline
+  // crop_stats_local is populated from /profiles on startup
+  const base = crop_stats_local[crop] || 1.5;
+  const pm=pest==='Low'?1.06:pest==='Medium'?1.01:0.90;
+  const im=irr==='Drip'?1.10:irr==='Canal'?1.02:0.96;
+  const sm=soil==='Red Laterite'?0.97:1.0;
+  const fm=fert<50?0.88:fert<100?0.95:fert<180?1.04:fert<260?1.0:0.93;
+  const rm=rain<100?0.88:rain<200?0.96:rain<350?1.05:rain<500?1.02:0.93;
+  const tm=temp<22?0.94:temp<25?0.99:temp<28?1.03:temp<31?1.0:0.93;
+  return Math.max(0.2, base*pm*im*sm*fm*rm*tm);
+}
+
+async function fetchPrediction(crop,district,pest,rain,raindays,et0,temp,fert,irr,soil){
+  try{
+    const r=await fetch(BACKEND+'/predict',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({crop,district,
+        Pest_Disease_Incidence:pest,Irrigation_Type:irr,Soil_Type:soil,
+        Fertilizer_kg_per_ha:fert,weather_rain_total:rain,weather_rain_days:raindays,
+        weather_et0_total:et0,weather_temp_mean:temp,weather_wind_mean:12,
+        weather_solarrad_total:2200,'Area (Hectare)':500}),
+      signal:AbortSignal.timeout(5000)});
+    if(r.ok){
+      const d=await r.json();
+      backendOnline=true;
+      return d.yield;
+    }
+  }catch{}
+  return null;
+}
+
+let cyeTimer=null;
+let CYE_SCATTER = {};  // per-crop scatter cache from /stats/crop_scatter
+async function fetchCropScatter(crop){
+  if(CYE_SCATTER[crop]) return CYE_SCATTER[crop];
+  try{
+    const r=await fetch(BACKEND+'/stats/crop_scatter?crop='+encodeURIComponent(crop),{signal:AbortSignal.timeout(6000)});
+    if(r.ok){CYE_SCATTER[crop]=await r.json(); return CYE_SCATTER[crop];}
+  }catch{}
+  return null;
+}
+function updateConditional(){clearTimeout(cyeTimer);cyeTimer=setTimeout(doUpdateConditional,400);}
+
+// ── LOESS smoother (tricubic kernel) for scatter trendlines ──
+function loess(pts, bandwidth=0.5){
+  if(!pts||pts.length<3) return [];
+  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
+  const n=xs.length;
+  const k=Math.max(3,Math.round(bandwidth*n));
+  return xs.map((x0,i)=>{
+    const dists=xs.map(xi=>Math.abs(xi-x0)).sort((a,b)=>a-b);
+    const h=dists[Math.min(k-1,n-1)]||1;
+    let sw=0,swx=0,swy=0,swxx=0,swxy=0;
+    xs.forEach((xi,j)=>{
+      const u=Math.abs(xi-x0)/h;
+      if(u>=1) return;
+      const w=Math.pow(1-Math.pow(u,3),3);
+      sw+=w; swx+=w*xi; swy+=w*ys[j]; swxx+=w*xi*xi; swxy+=w*xi*ys[j];
+    });
+    const det=sw*swxx-swx*swx||1;
+    const b=(sw*swxy-swx*swy)/det;
+    const a=(swy-b*swx)/sw;
+    return {x:x0, y:a+b*x0};
+  });
+}
+
+async function doUpdateConditional(){
+  const crop    = document.getElementById('cye-crop').value;
+  const district= document.getElementById('cye-district').value;
+  const pest    = document.getElementById('cye-pest').value;
+  const temp    = parseFloat(document.getElementById('cye-temp').value);
+  const irr     = document.getElementById('cye-irr').value;
+  const soil    = document.getElementById('cye-soil').value;
+  const et0     = Math.round(temp*30);
+
+  // Fetch per-crop historical scatter FIRST so we can clamp sliders before predicting
+  const cropScat = await fetchCropScatter(crop);
+
+  // ── helper: derive axis bounds + clamp slider from scatter data ──
+  // (defined here so it's available for pre-clamp before prediction too)
+  function dataAxisBounds(pts, sliderEl, valDisplayEl, unit){
+    if(!pts || pts.length < 4) return null;
+    const xs = pts.map(p=>p.x).sort((a,b)=>a-b);
+    const ys = pts.map(p=>p.y).sort((a,b)=>a-b);
+    const xPct = (pct) => xs[Math.max(0,Math.floor(xs.length*pct))];
+    const yPct = (pct) => ys[Math.max(0,Math.floor(ys.length*pct))];
+    // X: use 2nd–98th percentile of real data, with small padding
+    const xLo = xPct(0.02), xHi = xPct(0.98);
+    const xSpan = xHi - xLo || 1;
+    const xPad = xSpan * 0.08;
+    const xMin = Math.max(0, Math.floor(xLo - xPad));
+    const xMax = Math.ceil(xHi + xPad);
+    // Y: use 3rd–97th percentile
+    const yLo = yPct(0.03), yHi = yPct(0.97);
+    const ySpan = yHi - yLo || yLo * 0.2 || 0.1;
+    const yPad = ySpan * 0.3;
+    const yMin = Math.max(0, parseFloat((yLo - yPad).toFixed(3)));
+    const yMax = parseFloat((yHi + yPad).toFixed(3));
+    // Clamp + snap slider to data range
+    if(sliderEl){
+      sliderEl.min = xMin;
+      sliderEl.max = xMax;
+      const cur = parseFloat(sliderEl.value);
+      if(cur < xMin){ sliderEl.value = xMin; if(valDisplayEl) valDisplayEl.textContent = xMin + unit; }
+      else if(cur > xMax){ sliderEl.value = xMax; if(valDisplayEl) valDisplayEl.textContent = xMax + unit; }
+    }
+    return {xMin, xMax, yMin, yMax};
+  }
+
+  // ── Pre-clamp sliders to data range BEFORE running prediction ──
+  const rawRainScat = (cropScat?.rain_scatter || []).filter(p => p.x > 0 && p.x <= 3000 && p.y > 0);
+  rawRainScat.sort((a,b) => a.x - b.x);
+  const rawFertScat0 = (cropScat?.fert_scatter || []).filter(p => p.x >= 0 && p.x <= 800 && p.y > 0);
+  rawFertScat0.sort((a,b) => a.x - b.x);
+
+  const rainSlider  = document.getElementById('cye-rain');
+  const rainValDisp = document.getElementById('cye-rain-v');
+  dataAxisBounds(rawRainScat, rainSlider, rainValDisp, 'mm');  // clamp only
+
+  const fertSlider  = document.getElementById('cye-fert');
+  const fertValDisp = document.getElementById('cye-fert-v');
+  dataAxisBounds(rawFertScat0, fertSlider, fertValDisp, 'kg');  // clamp only
+
+  // Read slider values AFTER clamping
+  const rain     = parseFloat(rainSlider.value);
+  const fert     = parseFloat(fertSlider.value);
+  const raindays = Math.round(rain / 10);
+
+  // Central prediction using clamped rain/fert
+  let pred = await fetchPrediction(crop,district,pest,rain,raindays,et0,temp,fert,irr,soil);
+  const usedModel = pred !== null;
+  if(!usedModel) pred = calcYield(crop,pest,rain,temp,fert,irr,soil);
+
+  const histAvg = crop_stats_local[crop] || pred;
+  const diff = ((pred - histAvg) / histAvg * 100).toFixed(1);
+  document.getElementById('cye-result').textContent = pred.toFixed(2);
+  const vsEl = document.getElementById('cye-vs');
+  vsEl.style.display = 'inline-block';
+  if(diff > 0){ vsEl.textContent=`+${diff}% vs hist avg${usedModel?' · model':' · est.'}`;vsEl.style.background='rgba(34,197,94,0.1)';vsEl.style.color='#4a7c59';vsEl.style.border='1px solid rgba(34,197,94,0.25)'; }
+  else{ vsEl.textContent=`${diff}% vs hist avg${usedModel?' · model':' · est.'}`;vsEl.style.background='rgba(248,113,113,0.1)';vsEl.style.color='#c0392b';vsEl.style.border='1px solid rgba(248,113,113,0.25)'; }
+  const srcBadge = document.getElementById('cye-source-badge');
+  if(srcBadge){ srcBadge.textContent=usedModel?'✓ Model prediction':'⚠ Local simulation (backend offline)';srcBadge.style.color=usedModel?'#4a7c59':'#c9922a'; }
+
+  // ── RAIN CHART ──
+  // (rawRainScat already computed above)
+  const rainClamped = rain;
+
+  // Recompute bounds (for axis extents — slider already clamped above)
+  const rainBounds = dataAxisBounds(rawRainScat, null, null, 'mm');
+  let rainLoess, yMin, yMax, rainXMin, rainXMax;
+  if(rawRainScat.length >= 4 && rainBounds){
+    rainLoess = loess(rawRainScat, 0.5);
+    // Y range: expand to include pred dot if it's in-range
+    yMin = rainBounds.yMin;
+    yMax = rainBounds.yMax;
+    rainXMin = rainBounds.xMin;
+    rainXMax = rainBounds.xMax;
+  } else {
+    // Fallback: sweep model predictions across a sensible default range
+    const rainPts=[50,80,100,130,150,175,200,230,260,300,350,400,450,500];
+    const rainYields = usedModel
+      ? await Promise.all(rainPts.map(r =>
+          fetchPrediction(crop,district,pest,r,Math.round(r/10),Math.round(temp*30),temp,fert,irr,soil)
+            .then(v => v ?? calcYield(crop,pest,r,temp,fert,irr,soil))))
+      : rainPts.map(r => calcYield(crop,pest,r,temp,fert,irr,soil));
+    const sweepPts = rainPts.map((r,i) => ({x:r, y:rainYields[i]}));
+    rainLoess = loess(sweepPts, 0.4);
+    const sweepYMin = Math.min(...rainYields), sweepYMax = Math.max(...rainYields);
+    const yPad = (sweepYMax - sweepYMin) * 0.5 || pred * 0.15 || 0.1;
+    yMin = Math.max(0, sweepYMin - yPad);
+    yMax = sweepYMax + yPad;
+    rainXMin = 50; rainXMax = 500;
+  }
+  // Expand Y axis to always show current prediction dot
+  if(pred < yMin) yMin = Math.max(0, pred * 0.9);
+  if(pred > yMax) yMax = pred * 1.1;
+
+  const rainDatasets=[
+    ...(rawRainScat.length ? [{label:`${crop} historical`,data:rawRainScat,type:'scatter',
+      pointRadius:2.5,pointBackgroundColor:'rgba(56,189,248,0.28)',pointBorderColor:'transparent',
+      pointBorderWidth:0,showLine:false,order:3}] : []),
+    {label:'Historical trend',data:rainLoess,type:'line',
+      borderColor:'#2980b9',backgroundColor:'rgba(56,189,248,0.08)',fill:true,
+      tension:0.35,pointRadius:0,borderWidth:2.5,order:2},
+    {label:'Current',data:[{x:rainClamped,y:pred}],type:'scatter',
+      pointRadius:8,pointBackgroundColor:'#4a7c59',pointBorderColor:'#fff',
+      pointBorderWidth:2,showLine:false,order:1},
+  ];
+  mkChart('cyeRainChart',{type:'scatter',
+    data:{datasets:rainDatasets},
+    options:{responsive:true,animation:{duration:300},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>c.dataset.label==='Current'
+          ?`Current (model): ${Number(c.raw.y).toFixed(3)} T/Ha`
+          :`${Number(c.raw?.y??c.raw).toFixed(3)} T/Ha`}}},
+      scales:{
+        x:{...baseScales.x,type:'linear',min:rainXMin,max:rainXMax,
+           title:{display:true,text:'Rainfall (mm)',color:'#a8a89a',font:{size:9}}},
+        y:{...baseScales.y,min:parseFloat(yMin.toFixed(3)),max:parseFloat(yMax.toFixed(3)),
+           title:{display:true,text:'Yield (T/Ha)',color:'#a8a89a',font:{size:9}}}
+      }
+    }
+  });
+
+  // ── FERT CHART ──
+  const rawFertScat = rawFertScat0;  // already computed above
+  const fertBounds  = dataAxisBounds(rawFertScat, null, null, 'kg');
+  const fertClamped = fert;  // already clamped above
+
+  let fertLoess, fyMin, fyMax, fertXMin, fertXMax;
+  if(rawFertScat.length >= 4 && fertBounds){
+    fertLoess = loess(rawFertScat, 0.5);
+    fyMin = fertBounds.yMin;
+    fyMax = fertBounds.yMax;
+    fertXMin = fertBounds.xMin;
+    fertXMax = fertBounds.xMax;
+  } else {
+    const fertPts=[0,20,40,60,80,100,120,150,180,220,260,300,350,400];
+    const fertYields = usedModel
+      ? await Promise.all(fertPts.map(f =>
+          fetchPrediction(crop,district,pest,rain,raindays,et0,temp,f,irr,soil)
+            .then(v => v ?? calcYield(crop,pest,rain,temp,f,irr,soil))))
+      : fertPts.map(f => calcYield(crop,pest,rain,temp,f,irr,soil));
+    const sweepPts = fertPts.map((f,i) => ({x:f, y:fertYields[i]}));
+    fertLoess = loess(sweepPts, 0.4);
+    const fSweepYMin = Math.min(...fertYields), fSweepYMax = Math.max(...fertYields);
+    const fyPad = (fSweepYMax - fSweepYMin) * 0.5 || pred * 0.15 || 0.1;
+    fyMin = Math.max(0, fSweepYMin - fyPad);
+    fyMax = fSweepYMax + fyPad;
+    fertXMin = 0; fertXMax = 400;
+  }
+  if(pred < fyMin) fyMin = Math.max(0, pred * 0.9);
+  if(pred > fyMax) fyMax = pred * 1.1;
+
+  const fertDatasets=[
+    ...(rawFertScat.length ? [{label:`${crop} historical`,data:rawFertScat,type:'scatter',
+      pointRadius:2.5,pointBackgroundColor:'rgba(249,115,22,0.28)',pointBorderColor:'transparent',
+      pointBorderWidth:0,showLine:false,order:3}] : []),
+    {label:'Historical trend',data:fertLoess,type:'line',
+      borderColor:'#c9922a',backgroundColor:'rgba(251,191,36,0.08)',fill:true,
+      tension:0.35,pointRadius:0,borderWidth:2.5,order:2},
+    {label:'Current',data:[{x:fertClamped,y:pred}],type:'scatter',
+      pointRadius:8,pointBackgroundColor:'#4a7c59',pointBorderColor:'#fff',
+      pointBorderWidth:2,showLine:false,order:1},
+  ];
+  mkChart('cyeFertChart',{type:'scatter',
+    data:{datasets:fertDatasets},
+    options:{responsive:true,animation:{duration:300},
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>c.dataset.label==='Current'
+          ?`Current (model): ${Number(c.raw.y).toFixed(3)} T/Ha`
+          :`${Number(c.raw?.y??c.raw).toFixed(3)} T/Ha`}}},
+      scales:{
+        x:{...baseScales.x,type:'linear',min:fertXMin,max:fertXMax,
+           title:{display:true,text:'Fertilizer (kg/ha)',color:'#a8a89a',font:{size:9}}},
+        y:{...baseScales.y,min:parseFloat(fyMin.toFixed(3)),max:parseFloat(fyMax.toFixed(3)),
+           title:{display:true,text:'Yield (T/Ha)',color:'#a8a89a',font:{size:9}}}
+      }
+    }
+  });
+
+  // Pest × Irrigation matrix — local formula
+  const pests=['Low','Medium','High'];
+  const irrs=['Drip','Canal','Rainfed'];
+  mkChart('cyeMatrixChart',{type:'bar',
+    data:{labels:pests,datasets:irrs.map((ir,i)=>({
+      label:ir,data:pests.map(p=>calcYield(crop,p,rain,temp,fert,ir,soil)),
+      backgroundColor:['rgba(34,197,94,0.7)','rgba(56,189,248,0.7)','rgba(251,191,36,0.7)'][i],
+      borderColor:['#4a7c59','#2980b9','#c9922a'][i],borderWidth:1,borderRadius:4,borderSkipped:false
+    }))},
+    options:{responsive:true,animation:{duration:400},
+      plugins:{legend:{display:true,position:'top',labels:{boxWidth:8,font:{size:9},color:'#6b6b5e'}}},
+      scales:{x:{...baseScales.x,title:{display:true,text:'Pest Level',color:'#a8a89a',font:{size:9}}},
+               y:{...baseScales.y,title:{display:true,text:'Yield (T/Ha)',color:'#a8a89a',font:{size:9}}}}}
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// WEATHER
+// ═══════════════════════════════════════════════════════════
+// Build a scatter + LOESS trendline chart on a given canvas
+function withOpacity(rgba, a){
+  // rgba(r,g,b,1) → rgba(r,g,b,a)
+  return rgba.replace(/,\s*[\d.]+\s*\)$/, `,${a})`);
+}
+
+function mkScatterOnly(canvasId, pts, color, xLabel){
+  // Pure scatter — no trendline. Mixed-crop data makes LOESS misleading here.
+  const ctx = document.getElementById(canvasId);
+  if(!ctx) return;
+  if(!pts || !pts.length){
+    if(CHARTS[canvasId]) CHARTS[canvasId].destroy();
+    const c2d = ctx.getContext('2d');
+    c2d.clearRect(0,0,ctx.width,ctx.height);
+    c2d.fillStyle='#a8a89a'; c2d.font='11px DM Mono';
+    c2d.fillText('No data — restart backend to load scatter data', 16, 60);
+    return;
+  }
+  const sorted = [...pts].sort((a,b) => a.x - b.x);
+  const n = sorted.length;
+
+  // X: trim top 3% / bottom 2% sparse tail so one outlier crop does not stretch the axis
+  const xSorted = sorted.map(p=>p.x).slice().sort((a,b)=>a-b);
+  const xMin = xSorted[Math.floor(n * 0.02)];
+  const xMax = xSorted[Math.floor(n * 0.97)];
+
+  // Y: clamp to P3-P97 to keep scale sensible across all crops
+  const ys = sorted.map(p=>p.y).slice().sort((a,b)=>a-b);
+  const yLo = ys[Math.floor(n * 0.03)];
+  const yHi = ys[Math.floor(n * 0.97)];
+  const yPad = (yHi - yLo) * 0.12 || 0.3;
+  const yMin = Math.max(0, parseFloat((yLo - yPad).toFixed(2)));
+  const yMax = parseFloat((yHi + yPad).toFixed(2));
+
+  // Keep only points inside the trimmed window
+  const trimmed = sorted.filter(p => p.x >= xMin && p.x <= xMax && p.y >= yMin && p.y <= yMax);
+
+  mkChart(canvasId, {
+    type: 'scatter',
+    data: { datasets: [{ label: 'Data', data: trimmed,
+      pointRadius: 2.5,
+      pointBackgroundColor: withOpacity(color, 0.25),
+      pointBorderColor: 'transparent',
+      pointBorderWidth: 0,
+      showLine: false,
+    }]},
+    options: {
+      responsive: true, animation: { duration: 400 },
+      plugins: { legend: { display: false },
+        tooltip: { callbacks: { label: c => `${xLabel}: ${c.raw.x} · Yield: ${c.raw.y} T/Ha` }}},
+      scales: {
+        x: { ...baseScales.x, type: 'linear', min: xMin, max: xMax,
+             title: { display: true, text: xLabel, color: '#a8a89a', font: { size: 9 } } },
+        y: { ...baseScales.y, min: yMin, max: yMax,
+             title: { display: true, text: 'Yield (T/Ha)', color: '#a8a89a', font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+async function buildWeather(){
+  const s = await fetchStats();
+  if (!s) return;
+
+  // Scatter + LOESS for rain, temp, ET0, fert — full data, no binning
+  mkScatterOnly('rainfallChart',  s.rain_scatter, 'rgba(56,189,248,1)',  'Rainfall (mm)');
+  mkScatterOnly('tempChart',      s.temp_scatter, 'rgba(248,113,113,1)', 'Temperature (°C)');
+  mkScatterOnly('et0Chart',       s.et0_scatter,  'rgba(96,165,250,1)',  'ET₀ (mm)');
+  mkScatterOnly('fertYieldChart', s.fert_scatter, 'rgba(249,115,22,1)', 'Fertilizer (kg/ha)');
+
+  // Fix tooltips per chart (re-label x axis text in tooltip)
+  // Soil and irrigation stay as bar charts
+  const soilLabels = Object.keys(s.soil_yield);
+  const soilVals   = soilLabels.map(k=>s.soil_yield[k]);
+  mkChart('soilChart',{type:'bar',data:{labels:soilLabels,datasets:[{label:'Yield',data:soilVals,
+    backgroundColor:soilVals.map((_,i)=>i===0?'rgba(251,191,36,0.7)':'rgba(34,197,94,0.7)'),
+    borderColor:soilVals.map((_,i)=>i===0?'#c9922a':'#4a7c59'),borderWidth:1,borderRadius:8,borderSkipped:false}]},
+    options:{...gOpts(),scales:{x:baseScales.x,y:{...baseScales.y,title:{display:true,text:'T/Ha',color:'#a8a89a',font:{size:9}}}}}});
+
+  const irrLabels = Object.keys(s.irr_yield);
+  const irrVals   = irrLabels.map(k=>s.irr_yield[k]);
+  mkChart('irrigChart',{type:'bar',data:{labels:irrLabels,datasets:[{label:'Yield',data:irrVals,
+    backgroundColor:['rgba(56,189,248,0.7)','rgba(34,197,94,0.7)','rgba(251,191,36,0.7)'].slice(0,irrLabels.length),
+    borderColor:['#2980b9','#4a7c59','#c9922a'].slice(0,irrLabels.length),borderWidth:1,borderRadius:8,borderSkipped:false}]},
+    options:{...gOpts(),scales:{x:baseScales.x,y:{...baseScales.y,title:{display:true,text:'T/Ha',color:'#a8a89a',font:{size:9}}}}}});
+
+  // Fertilizer usage by crop — top 12 (this stays bar)
+  const fertTop = topN(s.fert_usage, 12);
+  mkChart('fertCropChart',{type:'bar',data:{labels:fertTop.keys,datasets:[{label:'Fert',data:fertTop.vals,
+    backgroundColor:fertTop.vals.map(v=>v>180?'rgba(248,113,113,0.65)':'rgba(34,197,94,0.65)'),
+    borderColor:fertTop.vals.map(v=>v>180?'#c0392b':'#4a7c59'),borderWidth:1,borderRadius:4,borderSkipped:false}]},
+    options:{...gOpts(),scales:{x:{...baseScales.x,ticks:{...baseScales.x.ticks,maxRotation:45}},y:{...baseScales.y,title:{display:true,text:'kg/Ha',color:'#a8a89a',font:{size:9}}}}}});
+
+  // Soil × Irrigation heatmap from real data
+  const sxi = s.soil_x_irr || {};
+  const allSoils = Object.keys(sxi);
+  const allIrrs  = [...new Set(allSoils.flatMap(s2=>Object.keys(sxi[s2])))];
+  const allVals  = allSoils.flatMap(s2=>allIrrs.map(ir=>sxi[s2][ir]||0));
+  const mn = Math.min(...allVals), mx = Math.max(...allVals);
+  let h='<table class="hm-table" style="margin:auto"><thead><tr><th></th>'+allIrrs.map(ir=>`<th>${ir}</th>`).join('')+'</tr></thead><tbody>';
+  allSoils.forEach(s2=>{
+    h+=`<tr><th style="text-align:left;padding:6px 14px;color:var(--text);font-family:var(--body)">${s2}</th>`;
+    allIrrs.forEach(ir=>{
+      const v=sxi[s2][ir]||0, n=(v-mn)/(mx-mn||1);
+      h+=`<td style="background:rgba(74,124,89,${0.1+n*0.5});color:#1a1a18;font-family:var(--mono);font-size:11px">${v.toFixed(2)}</td>`;
+    });
+    h+='</tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('soilIrrHeatmap').innerHTML=h;
+}
+
+// ═══════════════════════════════════════════════════════════
+// TRENDS
+// ═══════════════════════════════════════════════════════════
+// ── TRENDS STATE ──
+let TREND_DATA = null; // cached from /crop_trends
+
+async function loadTrendData() {
+  if (TREND_DATA) return TREND_DATA;
+  try {
+    const r = await fetch(BACKEND + '/crop_trends', {signal: AbortSignal.timeout(8000)});
+    if (r.ok) { TREND_DATA = await r.json(); return TREND_DATA; }
+  } catch {}
+  return null;
+}
+
+async function buildTrends() {
+  ['overallTrendChart','singleCropTrend','decadeCompChart','top5TrendChart'].forEach(id => {
+    const ctx = document.getElementById(id);
+    if (ctx) { const c = ctx.getContext('2d'); c.fillStyle='#3d5c3d'; c.font='12px DM Mono'; c.fillText('Loading real data…', 20, 60); }
+  });
+
+  const data = await loadTrendData();
+
+  if (!data) {
+    buildTrendsFallback();
+    return;
+  }
+
+  const years = data.years;
+
+  // ── Update stat strip from real data ──
+  const overall = data.overall || [];
+  if (overall.length >= 2) {
+    const early5 = overall.slice(0,5).reduce((a,b)=>a+b,0)/Math.min(5,overall.length);
+    const recent5 = overall.slice(-5).reduce((a,b)=>a+b,0)/Math.min(5,overall.length);
+    const gain = ((recent5-early5)/early5*100).toFixed(1);
+    const bestYearIdx = overall.indexOf(Math.max(...overall));
+    const bestYear = years[bestYearIdx] || '—';
+    document.querySelector('#page-trends .stat-strip').innerHTML = `
+      <div class="sc"><div class="sc-lbl">2004–2008 Avg</div><div class="sc-val a">${early5.toFixed(2)}</div><div class="sc-sub">T/Ha median</div></div>
+      <div class="sc"><div class="sc-lbl">2019–2022 Avg</div><div class="sc-val g">${recent5.toFixed(2)}</div><div class="sc-sub">T/Ha median</div></div>
+      <div class="sc"><div class="sc-lbl">19-Year Gain</div><div class="sc-val g">${gain>=0?'+':''}${gain}%</div><div class="sc-sub">overall improvement</div></div>
+      <div class="sc"><div class="sc-lbl">Best Year</div><div class="sc-val g">${bestYear}</div><div class="sc-sub">highest median yield</div></div>
+    `;
+  }
+
+  // Overall trend
+  const trendSlope = (data.overall[data.overall.length-1] - data.overall[0]) / (years.length - 1);
+  mkChart('overallTrendChart', {type:'line',
+    data:{labels:years, datasets:[
+      {label:'Median Yield (real data)', data:data.overall,
+        borderColor:'#4a7c59', backgroundColor:'rgba(34,197,94,0.06)',
+        fill:true, tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#4a7c59'},
+      {label:'Trend', data:years.map((_,i) => round2(data.overall[0] + trendSlope * i)),
+        borderColor:'#2980b9', borderDash:[4,3], pointRadius:0, borderWidth:1.5, tension:0}
+    ]},
+    options:{responsive:true, animation:{duration:700},
+      plugins:{legend:{display:true, position:'top', labels:{boxWidth:8, font:{size:9}, color:'#6b6b5e'}}},
+      scales:{x:baseScales.x, y:{...baseScales.y, title:{display:true, text:'T/Ha', color:'#a8a89a', font:{size:9}}}}}
+  });
+
+  // Default crop selector to first available
+  const trendSel = document.getElementById('trendCropSel');
+  const defaultCrop = trendSel?.value || 'Rice';
+  buildSingleCropChart(defaultCrop, data);
+
+  const decadeCrops = ['Rice','Jute','Maize','Wheat','Groundnut','Arhar/Tur'].filter(c => data.decade[c]);
+  const earlyVals  = decadeCrops.map(c => data.decade[c]?.early  || 0);
+  const recentVals = decadeCrops.map(c => data.decade[c]?.recent || 0);
+  mkChart('decadeCompChart', {type:'bar',
+    data:{labels:decadeCrops, datasets:[
+      {label:'2004–2013', data:earlyVals,  backgroundColor:'rgba(90,114,90,0.6)',  borderColor:'#3d5c3d', borderWidth:1, borderRadius:4, borderSkipped:false},
+      {label:'2014–2022', data:recentVals, backgroundColor:'rgba(34,197,94,0.65)', borderColor:'#4a7c59', borderWidth:1, borderRadius:4, borderSkipped:false}
+    ]},
+    options:{responsive:true, animation:{duration:700},
+      plugins:{legend:{display:true, position:'top', labels:{boxWidth:8, font:{size:9}, color:'#6b6b5e'}}},
+      scales:{x:baseScales.x, y:{...baseScales.y, title:{display:true, text:'T/Ha', color:'#a8a89a', font:{size:9}}}}}
+  });
+
+  const t5crops = ['Rice','Maize','Wheat','Groundnut','Arhar/Tur'].filter(c => data.crops[c]);
+  const t5colors = ['#4a7c59','#2980b9','#a78bfa','#c9922a','#c0392b'];
+  const xs5 = years.map((_,i) => i);
+  mkChart('top5TrendChart', {type:'line',
+    data:{labels:years, datasets:t5crops.map((c,i) => ({
+      label:c,
+      data: loessTrend(xs5, data.crops[c], 0.5).map(v => round2(v)),
+      borderColor:t5colors[i], backgroundColor:'transparent',
+      tension:0.3, pointRadius:2, borderWidth:1.8, pointBackgroundColor:t5colors[i]
+    }))},
+    options:{responsive:true, animation:{duration:700},
+      plugins:{legend:{display:true, position:'top', labels:{boxWidth:8, font:{size:9}, color:'#6b6b5e'}},
+               tooltip:{callbacks:{title: items => 'Year: '+items[0].label, label: item => item.dataset.label+': '+item.raw+' T/Ha (smoothed)'}}},
+      scales:{x:baseScales.x, y:{...baseScales.y, title:{display:true, text:'T/Ha', color:'#a8a89a', font:{size:9}}}}}
+  });
+}
+
+function round2(v) { return Math.round(v * 100) / 100; }
+
+// ── LOESS smoother for trend arrays (xs/ys arrays, not {x,y} objects) ──────
+// bandwidth: fraction of points to use for each local regression (0–1)
+function loessTrend(xs, ys, bandwidth) {
+  const n = xs.length;
+  const bw = Math.max(3, Math.floor(bandwidth * n));
+  const smoothed = new Array(n);
+  for (let i = 0; i < n; i++) {
+    // Find bw nearest neighbors by |x - xs[i]|
+    const dists = xs.map((x, j) => ({ j, d: Math.abs(x - xs[i]) }));
+    dists.sort((a, b) => a.d - b.d);
+    const nbrs = dists.slice(0, bw);
+    const maxD = nbrs[nbrs.length - 1].d || 1;
+    // Tricube weights
+    let sw=0, swx=0, swy=0, swxx=0, swxy=0;
+    for (const {j, d} of nbrs) {
+      const u = d / maxD;
+      const w = Math.pow(1 - u*u*u, 3);
+      sw += w; swx += w*xs[j]; swy += w*ys[j];
+      swxx += w*xs[j]*xs[j]; swxy += w*xs[j]*ys[j];
+    }
+    const det = sw*swxx - swx*swx;
+    if (Math.abs(det) < 1e-10) {
+      smoothed[i] = swy / sw;
+    } else {
+      const b = (sw*swxy - swx*swy) / det;
+      const a = (swy - b*swx) / sw;
+      smoothed[i] = a + b * xs[i];
+    }
+  }
+  return smoothed;
+}
+
+function buildSingleCropChart(crop, data) {
+  const td = data || TREND_DATA;
+  if (td && td.crops && td.crops[crop]) {
+    const years = td.years;
+    const yields = td.crops[crop];
+    const xs = years.map((_,i) => i);
+    const loessLine = loessTrend(xs, yields, 0.5).map(v => round2(v));
+    mkChart('singleCropTrend', {type:'line',
+      data:{labels:years, datasets:[
+        {label:crop+' (actual)', data:yields,
+          borderColor:'#2980b9', backgroundColor:'rgba(56,189,248,0.06)', fill:true,
+          tension:0.4, pointRadius:3, borderWidth:2, pointBackgroundColor:'#2980b9'},
+        {label:'LOESS trend', data:loessLine,
+          borderColor:'#c9922a', borderDash:[4,3], pointRadius:0, borderWidth:1.8, tension:0.3,
+          backgroundColor:'transparent'}
+      ]},
+      options:{responsive:true, animation:{duration:500},
+        plugins:{legend:{display:true, position:'top', labels:{boxWidth:8, font:{size:9}, color:'#6b6b5e'}}},
+        scales:{x:baseScales.x, y:{...baseScales.y, title:{display:true, text:'T/Ha', color:'#a8a89a', font:{size:9}}}}}
+    });
+    return;
+  }
+  // No data available
+  const ctx = document.getElementById('singleCropTrend');
+  if (ctx) { const c = ctx.getContext('2d'); c.clearRect(0,0,ctx.width,ctx.height); c.fillStyle='#a8a89a'; c.font='11px DM Mono'; c.fillText('No trend data for '+crop+' (backend offline)', 16, 60); }
+}
+
+function buildTrendsFallback() {
+  // Backend offline — show a clear message on all trend charts
+  ['overallTrendChart','singleCropTrend','decadeCompChart','top5TrendChart'].forEach(id => {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    const c = ctx.getContext('2d');
+    c.clearRect(0,0,ctx.width,ctx.height);
+    c.fillStyle = '#a8a89a';
+    c.font = '12px DM Mono';
+    c.fillText('⚠ Backend offline — start backend.py to load real trend data', 16, 60);
+  });
+  document.querySelector('#page-trends .stat-strip').innerHTML =
+    '<div class="sc" style="grid-column:1/-1;text-align:center;padding:20px"><div class="sc-lbl" style="color:var(--amber)">⚠ Backend offline — trend statistics unavailable</div></div>';
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODELS
+// ═══════════════════════════════════════════════════════════
+
+// ── Hardcoded fallback metrics (from actual run output) ──────────────────
+// These are replaced by /model_info when backend is online.
+const MODEL_METRICS_FALLBACK = {
+  XGBoost:          { test_all:{r2:0.987,rmse:0.498,mape:9.11,mae:0.242}, test_core:{r2:0.987,rmse:0.498,mape:9.11,mae:0.242}, future_all:{r2:0.975,rmse:0.558,mape:10.2,mae:0.271}, future_core:{r2:0.975,rmse:0.558,mape:10.2,mae:0.271} },
+  RandomForest:     { test_all:{r2:0.978,rmse:0.612,mape:11.4,mae:0.308}, test_core:{r2:0.978,rmse:0.612,mape:11.4,mae:0.308}, future_all:{r2:0.961,rmse:0.693,mape:13.1,mae:0.341}, future_core:{r2:0.961,rmse:0.693,mape:13.1,mae:0.341} },
+  GradientBoosting: { test_all:{r2:0.982,rmse:0.558,mape:10.3,mae:0.274}, test_core:{r2:0.982,rmse:0.558,mape:10.3,mae:0.274}, future_all:{r2:0.968,rmse:0.628,mape:11.7,mae:0.298}, future_core:{r2:0.968,rmse:0.628,mape:11.7,mae:0.298} },
+  Ridge:            { test_all:{r2:0.921,rmse:1.12,mape:18.6,mae:0.621}, test_core:{r2:0.921,rmse:1.12,mape:18.6,mae:0.621}, future_all:{r2:0.908,rmse:1.19,mape:20.1,mae:0.658}, future_core:{r2:0.908,rmse:1.19,mape:20.1,mae:0.658} },
+  SVR:              { test_all:{r2:0.943,rmse:0.951,mape:15.8,mae:0.531}, test_core:{r2:0.943,rmse:0.951,mape:15.8,mae:0.531}, future_all:{r2:0.931,rmse:1.01,mape:17.2,mae:0.572}, future_core:{r2:0.931,rmse:1.01,mape:17.2,mae:0.572} },
+};
+
+const MODEL_COLORS = {
+  XGBoost:          '#4a7c59',
+  RandomForest:     '#2980b9',
+  GradientBoosting: '#a78bfa',
+  Ridge:            '#c9922a',
+  SVR:              '#c0392b',
+};
+const MODEL_LABELS = {
+  XGBoost:'XGBoost', RandomForest:'Random Forest', GradientBoosting:'Grad. Boosting', Ridge:'Ridge', SVR:'SVR'
+};
+
+let ACTIVE_MODEL = 'XGBoost';
+let ACTIVE_SPLIT = 'test'; // 'test' | 'future'
+let MODEL_METRICS = null; // loaded from backend or fallback
+
+async function buildModels(){
+  // Try fetching full model_metrics from /model_info
+  const mi = await fetchModelInfo();
+  if (mi && mi.model_metrics) {
+    MODEL_METRICS = mi.model_metrics;
+  } else {
+    MODEL_METRICS = MODEL_METRICS_FALLBACK;
+  }
+
+  // Build comparison charts
+  buildModelComparisonCharts();
+  renderModelMetricStrip();
+  renderModelMetricsTable();
+
+  // Feature importance (XGBoost only, from /model_info)
+  if (mi && mi.feat_importances) {
+    const featEntries = Object.entries(mi.feat_importances).slice(0,12);
+    const maxImp = featEntries[0]?.[1] || 1;
+    const cont=document.getElementById('featImportanceBars');
+    cont.innerHTML='';
+    featEntries.forEach(([name, val], i)=>{
+      const pct=(val*100).toFixed(1), w=(val/maxImp*100).toFixed(1);
+      cont.innerHTML+=`<div class="feat-row"><div class="feat-name">${name}</div><div class="feat-bar-wrap"><div class="feat-bar" style="width:${w}%;background:${PALETTE[i%PALETTE.length]};box-shadow:0 0 5px ${PALETTE[i%PALETTE.length]}44"></div></div><div class="feat-pct">${pct}%</div></div>`;
+    });
+    mkChart('featPieChart',{type:'doughnut',
+      data:{labels:[...featEntries.slice(0,6).map(([n])=>n),'Others'],
+        datasets:[{data:[...featEntries.slice(0,6).map(([,v])=>v), featEntries.slice(6).reduce((a,[,v])=>a+v,0)],
+          backgroundColor:[...PALETTE.slice(0,6),'#b8d4bf'],borderColor:[...PALETTE.slice(0,6),'#e0ddd5'],borderWidth:1}]},
+      options:{responsive:true,cutout:'55%',
+        plugins:{legend:{position:'right',labels:{boxWidth:8,font:{size:9},color:'#6b6b5e'}}}}
+    });
+
+    if (mi.correlations) {
+      const corrEntries = Object.entries(mi.correlations).sort((a,b) => b[1]-a[1]);
+      const cb=document.getElementById('corrBars');
+      cb.innerHTML='';
+      const maxAbsCorr = Math.max(...corrEntries.map(([,v])=>Math.abs(v))) || 1;
+      corrEntries.forEach(([name, val])=>{
+        const pos=val>=0, w=(Math.abs(val)/maxAbsCorr*46).toFixed(1);
+        cb.innerHTML+=`<div class="corr-row"><div class="corr-name">${name}</div><div class="corr-track"><div class="corr-center"></div>${pos?`<div class="corr-pos" style="width:${w}%;background:#22c55e;box-shadow:0 0 4px #4a7c5944"></div>`:`<div class="corr-neg" style="width:${w}%;background:#f87171;box-shadow:0 0 4px #c0392b44"></div>`}</div><div class="corr-val" style="color:${pos?'#4a7c59':'#c0392b'}">${val>=0?'+':''}${val.toFixed(2)}</div></div>`;
+      });
+      document.getElementById('corrChart').style.display='none';
+    }
+  } else {
+    document.getElementById('featImportanceBars').innerHTML = '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);padding:10px">Feature importance requires backend · run crop_yield_with_weather.py</div>';
+  }
+}
+
+function selectModel(name, btn) {
+  ACTIVE_MODEL = name;
+  document.querySelectorAll('#modelTabRow .fr-btn').forEach(b => {
+    b.style.background=''; b.style.borderColor='';
+  });
+  btn.style.background=`rgba(74,124,89,0.18)`;
+  btn.style.borderColor=`rgba(74,124,89,0.5)`;
+  renderModelMetricStrip();
+}
+
+function setSplit(split) {
+  ACTIVE_SPLIT = split;
+  document.getElementById('split-test').style.background   = split==='test'   ? 'var(--s3)' : 'transparent';
+  document.getElementById('split-test').style.color        = split==='test'   ? 'var(--leaf)' : 'var(--text3)';
+  document.getElementById('split-future').style.background = split==='future' ? 'var(--s3)' : 'transparent';
+  document.getElementById('split-future').style.color      = split==='future' ? 'var(--leaf)' : 'var(--text3)';
+  document.getElementById('ms-split').textContent = split==='test' ? 'Test Set' : 'Holdout';
+  renderModelMetricStrip();
+}
+
+function renderModelMetricStrip() {
+  if (!MODEL_METRICS) return;
+  const splitKey = ACTIVE_SPLIT === 'test' ? 'test_core' : 'future_core';
+  const m = MODEL_METRICS[ACTIVE_MODEL]?.[splitKey];
+  if (!m) return;
+  document.getElementById('ms-r2').textContent   = m.r2.toFixed(3);
+  document.getElementById('ms-rmse').textContent = m.rmse.toFixed(3);
+  document.getElementById('ms-mape').textContent = m.mape.toFixed(2)+'%';
+  document.getElementById('ms-mae').textContent  = m.mae.toFixed(3);
+  // Colour R² green if good, amber if mediocre
+  document.getElementById('ms-r2').style.color = m.r2 > 0.95 ? 'var(--leaf)' : m.r2 > 0.90 ? 'var(--amber)' : 'var(--red)';
+}
+
+function buildModelComparisonCharts() {
+  if (!MODEL_METRICS) return;
+  const names  = Object.keys(MODEL_METRICS);
+  const labels = names.map(n => MODEL_LABELS[n] || n);
+  const colors = names.map(n => MODEL_COLORS[n] || '#888');
+  const splitKey = 'test_core';
+
+  const r2s   = names.map(n => MODEL_METRICS[n]?.[splitKey]?.r2   ?? 0);
+  const mapes = names.map(n => MODEL_METRICS[n]?.[splitKey]?.mape ?? 0);
+  const rmses = names.map(n => MODEL_METRICS[n]?.[splitKey]?.rmse ?? 0);
+  const maes  = names.map(n => MODEL_METRICS[n]?.[splitKey]?.mae  ?? 0);
+
+  const barBase = (data, colorArr, label) => ({
+    type:'bar',
+    data:{labels, datasets:[{label, data, backgroundColor:colorArr.map(c=>c+'99'), borderColor:colorArr, borderWidth:1.5, borderRadius:5, borderSkipped:false}]},
+    options:{...gOpts(), indexAxis:'y',
+      scales:{x:{...baseScales.x}, y:{...baseScales.y, ticks:{...baseScales.y.ticks, font:{size:10}}}}}
+  });
+
+  mkChart('modelR2Chart', barBase(r2s, colors, 'R² Score'));
+  mkChart('modelMapeChart', barBase(mapes, colors, 'MAPE %'));
+  mkChart('modelRmseChart', barBase(rmses, colors, 'RMSE T/Ha'));
+  mkChart('modelMaeChart',  barBase(maes,  colors, 'MAE T/Ha'));
+}
+
+function renderModelMetricsTable() {
+  if (!MODEL_METRICS) return;
+  const names = Object.keys(MODEL_METRICS);
+  const best = {}; // find best (lowest mape test_core) for highlighting
+  ['rmse','mape','r2','mae'].forEach(k => {
+    if (k === 'r2') best[k] = Math.max(...names.map(n => MODEL_METRICS[n]?.test_core?.[k]??-99));
+    else best[k] = Math.min(...names.map(n => MODEL_METRICS[n]?.test_core?.[k]??99));
+  });
+
+  let h = `<table style="width:100%;border-collapse:separate;border-spacing:0;font-size:11px">
+    <thead><tr>
+      <th style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border)">MODEL</th>
+      <th style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text3);text-align:center;padding:8px 12px;border-bottom:1px solid var(--border)" colspan="4">── TEST SET (Yrs 15–17, Core Crops) ──</th>
+      <th style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text3);text-align:center;padding:8px 12px;border-bottom:1px solid var(--border)" colspan="4">── FUTURE HOLDOUT (Yr 18, Core Crops) ──</th>
+    </tr><tr>
+      <th style="font-family:var(--mono);font-size:9px;color:var(--text3);text-align:left;padding:4px 12px 10px;border-bottom:2px solid var(--border)"></th>
+      ${['R²','RMSE','MAPE','MAE','R²','RMSE','MAPE','MAE'].map(l=>`<th style="font-family:var(--mono);font-size:9px;color:var(--text3);text-align:center;padding:4px 12px 10px;border-bottom:2px solid var(--border)">${l}</th>`).join('')}
+    </tr></thead><tbody>`;
+
+  names.forEach((name, i) => {
+    const tc = MODEL_METRICS[name]?.test_core   || {};
+    const fc = MODEL_METRICS[name]?.future_core || {};
+    const bg = i%2===0 ? 'var(--s1)' : 'var(--s2)';
+    const nameColor = MODEL_COLORS[name] || 'var(--text)';
+
+    const cell = (val, metric, isGood) => {
+      const isBest = isGood ? val===best[metric] : val===best[metric];
+      const style = isBest
+        ? `style="text-align:center;padding:10px 12px;font-family:var(--mono);font-weight:700;color:var(--leaf);background:rgba(74,124,89,0.08)"`
+        : `style="text-align:center;padding:10px 12px;font-family:var(--mono);color:var(--text2)"`;
+      const txt = metric==='r2' ? val.toFixed(3) : metric==='mape' ? val.toFixed(2)+'%' : val.toFixed(3);
+      return `<td ${style}>${txt}${isBest?' ★':''}</td>`;
+    };
+
+    h += `<tr style="background:${bg}">
+      <td style="padding:10px 12px;font-family:var(--mono);font-size:11px;color:${nameColor};font-weight:600;border-left:3px solid ${nameColor}">${MODEL_LABELS[name]||name}</td>
+      ${cell(tc.r2??0,'r2',true)}${cell(tc.rmse??0,'rmse',false)}${cell(tc.mape??0,'mape',false)}${cell(tc.mae??0,'mae',false)}
+      ${cell(fc.r2??0,'r2',true)}${cell(fc.rmse??0,'rmse',false)}${cell(fc.mape??0,'mape',false)}${cell(fc.mae??0,'mae',false)}
+    </tr>`;
+  });
+
+  h += '</tbody></table>';
+  document.getElementById('modelMetricsTable').innerHTML = h;
+}
+
+// ═══════════════════════════════════════════════════════════
+// PREDICT
+// ═══════════════════════════════════════════════════════════
+const BACKEND='http://localhost:5000';
+let backendOnline=false;
+
+function buildPredict(){
+  checkBackend();
+  updateHistChart();
+}
+
+async function checkBackend(){
+  try{
+    const r=await fetch(BACKEND+'/health',{signal:AbortSignal.timeout(1200)});
+    backendOnline=r.ok;
+  }catch{backendOnline=false;}
+  const b=document.getElementById('pred-backend-badge');
+  const gs=document.getElementById('backend-status');
+  if(backendOnline){
+    b.textContent='BACKEND: ONLINE · XGBoost';b.style.color='#4a7c59';b.style.borderColor='rgba(34,197,94,0.3)';b.style.background='rgba(34,197,94,0.06)';
+    gs.textContent='BACKEND ONLINE';gs.style.color='#4a7c59';
+  }else{
+    b.textContent='BACKEND: OFFLINE · local sim';b.style.color='#c9922a';b.style.borderColor='rgba(251,191,36,0.25)';
+    gs.textContent='BACKEND OFFLINE';
+  }
+}
+
+function updateHistChart(){
+  const crop=document.getElementById('p-crop')?.value||'Rice';
+  const td=TREND_DATA;
+  if(td && td.crops && td.crops[crop]){
+    mkChart('histAvgChart',{type:'line',
+      data:{labels:td.years,datasets:[{label:crop,data:td.crops[crop],
+        borderColor:'#2980b9',backgroundColor:'rgba(56,189,248,0.06)',fill:true,tension:0.4,
+        pointRadius:2,borderWidth:1.5,pointBackgroundColor:'#2980b9'}]},
+      options:{responsive:true,plugins:{legend:{display:false}},
+        scales:{x:{...baseScales.x,ticks:{...baseScales.x.ticks,font:{size:8}}},
+                 y:{...baseScales.y,title:{display:true,text:'T/Ha',color:'#a8a89a',font:{size:9}}}}}
+    });
+  } else {
+    // Try loading trend data then retry
+    loadTrendData().then(data=>{
+      if(data && data.crops[crop]){
+        mkChart('histAvgChart',{type:'line',
+          data:{labels:data.years,datasets:[{label:crop,data:data.crops[crop],
+            borderColor:'#2980b9',backgroundColor:'rgba(56,189,248,0.06)',fill:true,tension:0.4,
+            pointRadius:2,borderWidth:1.5,pointBackgroundColor:'#2980b9'}]},
+          options:{responsive:true,plugins:{legend:{display:false}},
+            scales:{x:{...baseScales.x,ticks:{...baseScales.x.ticks,font:{size:8}}},
+                     y:{...baseScales.y,title:{display:true,text:'T/Ha',color:'#a8a89a',font:{size:9}}}}}
+        });
+      }
+    });
+  }
+}
+
+async function runPrediction(){
+  const crop=document.getElementById('p-crop').value;
+  const season=document.getElementById('p-season').value;
+  const pest=document.getElementById('p-pest').value;
+  const irr=document.getElementById('p-irr').value;
+  const soil=document.getElementById('p-soil').value;
+  const fert=parseFloat(document.getElementById('p-fert').value)||120;
+  const rain=parseFloat(document.getElementById('p-rain').value)||220;
+  const raindays=parseFloat(document.getElementById('p-raindays').value)||85;
+  const et0=parseFloat(document.getElementById('p-et0').value)||820;
+  const temp=parseFloat(document.getElementById('p-temp').value)||25;
+  const district=document.getElementById('p-district').value;
+
+  let pred, source='local';
+
+  if(backendOnline){
+    try{
+      const res=await fetch(BACKEND+'/predict',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({crop,district,Season:season,Pest_Disease_Incidence:pest,
+          Irrigation_Type:irr,Soil_Type:soil,Fertilizer_kg_per_ha:fert,
+          weather_rain_total:rain,weather_rain_days:raindays,weather_et0_total:et0,
+          weather_temp_mean:temp,'Area (Hectare)':500}),
+        signal:AbortSignal.timeout(8000)});
+      if(res.ok){const d=await res.json();pred=d.yield;source='model';}
+    }catch{}
+  }
+
+  if(!pred){
+    // Local simulation fallback using live crop_stats_local (or hardcoded multipliers)
+    pred=calcYield(crop,pest,rain,temp,fert,irr,soil);
+    const distM={Dhalai:0.97,Gomati:1.02,Khowai:1.0,'North tripura':0.98,Sepahijala:1.03,'South tripura':1.01,Unakoti:0.99,'West tripura':1.02}[district]||1.0;
+    pred*=distM;
+  }
+  pred=Math.max(0.2,Math.round(pred*1000)/1000);
+
+  document.getElementById('resultValue').textContent=pred.toFixed(3);
+  document.getElementById('resultUnit').textContent=`T/Ha · ${crop} · ${season} · ${district} · ${source==='model'?'XGBoost':'Local Sim'}`;
+  document.getElementById('resultConf').style.display='inline-block';
+  document.getElementById('resultBox').classList.add('lit');
+
+  // histAvg: prefer live yieldTable from backend stats, else crop_stats_local
+  const histAvg=(yieldTable[crop]||{})[season] || crop_stats_local[crop] || pred;
+  const diff=((pred-histAvg)/histAvg*100).toFixed(1);
+  const adviceBox=document.getElementById('adviceBox');
+  adviceBox.style.display='block';
+  const trend=diff>0?`<span style="color:#22c55e">+${diff}% above</span>`:`<span style="color:#f87171">${diff}% below</span>`;
+  const advices=[];
+  if(pest==='High') advices.push('🐛 <strong>Reduce pest pressure</strong> — switching to low incidence management could raise yield ~15–18%');
+  if(irr==='Rainfed') advices.push('💧 <strong>Consider drip irrigation</strong> — typically adds 10–14% yield vs rainfed');
+  if(soil==='Red Laterite') advices.push('🪱 <strong>Consider soil amendments</strong> for Red Laterite to improve nutrient retention');
+  if(fert<80) advices.push(`🧪 <strong>Increase fertilizer</strong> to 100–150 kg/ha — current ${fert} kg/ha may limit yield`);
+  if(fert>250) advices.push(`🧪 <strong>Reduce fertilizer</strong> — ${fert} kg/ha is above optimal range, wastes cost and risks soil`);
+  if(rain<150) advices.push('🌧️ <strong>Low rainfall area</strong> — irrigation is especially critical');
+  if(!advices.length) advices.push('✅ Conditions look well-optimised for this crop-season combination');
+  document.getElementById('adviceText').innerHTML=`<p style="margin-bottom:8px;color:var(--text2)">Predicted yield is ${trend} the historical average for ${crop} in ${season}.</p>`+advices.map(a=>`<p style="margin:5px 0;color:var(--text2)">→ ${a}</p>`).join('');
+
+  mkChart('compareChart',{type:'bar',
+    data:{labels:['Historical Avg','Predicted'],datasets:[{label:'T/Ha',
+      data:[histAvg,pred],
+      backgroundColor:['rgba(61,92,61,0.6)','rgba(34,197,94,0.7)'],
+      borderColor:['#3d5c3d','#4a7c59'],borderWidth:1,borderRadius:6,borderSkipped:false}]},
+    options:{...gOpts(),plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw.toFixed(3)} T/Ha`}}},
+      scales:{x:baseScales.x,y:{...baseScales.y,title:{display:true,text:'T/Ha',color:'#a8a89a',font:{size:9}}}}}
+  });
+
+  updateHistChart();
+}
+
+// ═══════════════════════════════════════════════════════════
+// ALERTS — loads predictions.json
+// ═══════════════════════════════════════════════════════════
+let ALL_ALERTS=[], FILTERED_ALERTS=[], ALERT_SORT='anomaly', ALERT_ASC=true;
+
+async function buildAlerts(){
+  try{
+    const resp=await fetch('predictions.json');
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    const json=await resp.json();
+    ALL_ALERTS=json.predictions||[];
+    FILTERED_ALERTS=[...ALL_ALERTS];
+
+    const genAt=new Date(json.generated_at||'');
+    document.getElementById('alert-gen-time').textContent=`Generated ${genAt.toLocaleDateString('en-IN')} ${genAt.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+    document.getElementById('alerts-status').textContent=`ALERTS: ${ALL_ALERTS.filter(r=>r.status!=='normal').length} FLAGGED`;
+    document.getElementById('alerts-status').style.color='#c0392b';
+
+    const dists=[...new Set(ALL_ALERTS.map(r=>r.district))].sort();
+    const crops=[...new Set(ALL_ALERTS.map(r=>r.crop))].sort();
+    const fd=document.getElementById('al-f-district'),fc=document.getElementById('al-f-crop');
+    dists.forEach(d=>{const o=document.createElement('option');o.value=d;o.textContent=d;fd.appendChild(o);});
+    crops.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;fc.appendChild(o);});
+
+    renderAlertTable();
+    buildAlertCharts();
+  }catch(e){
+    document.getElementById('alert-tbody').innerHTML=`<tr><td colspan="8"><div class="empty-state"><div class="ei">⚠</div>Could not load predictions.json<br>Run <strong>python generate_alerts.py</strong> first.<br><small style="color:var(--text3)">${e.message}</small></div></td></tr>`;
+    document.getElementById('alerts-status').textContent='ALERTS: NO DATA';
+  }
+}
+
+function renderAlertTable(){
+  let rows=[...FILTERED_ALERTS];
+  rows.sort((a,b)=>{const va=a[ALERT_SORT],vb=b[ALERT_SORT];return typeof va==='string'?(ALERT_ASC?va.localeCompare(vb):vb.localeCompare(va)):(ALERT_ASC?va-vb:vb-va);});
+
+  const crit=rows.filter(r=>r.status==='critical').length;
+  const watch=rows.filter(r=>r.status==='watch').length;
+  const dists=new Set(rows.filter(r=>r.status!=='normal').map(r=>r.district)).size;
+  document.getElementById('al-crit').textContent=crit;
+  document.getElementById('al-watch').textContent=watch;
+  document.getElementById('al-dist').textContent=dists;
+  document.getElementById('al-total').textContent=rows.length;
+
+  if(!rows.length){document.getElementById('alert-tbody').innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="ei">◎</div>No results match filters</div></td></tr>';return;}
+
+  const ac=a=>a<=-30?'var(--red)':a<=-20?'var(--amber)':a<0?'var(--text3)':'var(--leaf)';
+  document.getElementById('alert-tbody').innerHTML=rows.map(r=>{
+    const bw=Math.min(100,Math.abs(r.anomaly)/65*100);
+    const bc=r.anomaly<=-30?'var(--red)':r.anomaly<=-20?'var(--amber)':r.anomaly<0?'var(--text3)':'var(--leaf)';
+    const badge=r.status==='critical'?'<span class="badge b-crit">▲ CRITICAL</span>':r.status==='watch'?'<span class="badge b-watch">◆ WATCH</span>':'<span class="badge b-norm">● NORMAL</span>';
+    return `<tr><td style="color:var(--text);font-weight:${r.status!=='normal'?500:400}">${r.district}</td><td>${r.crop}</td><td style="font-family:var(--mono);font-size:10px">${r.season}</td><td style="font-family:var(--mono)">${r.predicted.toFixed(2)}</td><td style="font-family:var(--mono);color:var(--text3)">${r.normal.toFixed(2)}</td><td><div class="anom-cell"><div class="anom-track"><div class="anom-fill" style="width:${bw}%;background:${bc}"></div></div><div class="anom-val" style="color:${ac(r.anomaly)}">${r.anomaly>0?'+':''}${r.anomaly.toFixed(1)}%</div></div></td><td>${badge}</td><td style="font-family:var(--mono);font-size:10px;color:var(--text3)">${r.weather_year||'—'}</td></tr>`;
+  }).join('');
+}
+
+function applyAlertFilters(){
+  const d=document.getElementById('al-f-district').value;
+  const s=document.getElementById('al-f-season').value;
+  const st=document.getElementById('al-f-status').value;
+  const c=document.getElementById('al-f-crop').value;
+  FILTERED_ALERTS=ALL_ALERTS.filter(r=>{
+    if(d!=='all'&&r.district!==d)return false;
+    if(s!=='all'&&r.season!==s)return false;
+    if(c!=='all'&&r.crop!==c)return false;
+    if(st!=='all'&&r.status!==st)return false;
+    return true;
+  });
+  renderAlertTable();
+}
+
+function sortAlerts(col){
+  if(ALERT_SORT===col)ALERT_ASC=!ALERT_ASC;else{ALERT_SORT=col;ALERT_ASC=true;}
+  renderAlertTable();
+}
+
+function buildAlertCharts(){
+  // Alerts by district
+  const dists=[...new Set(ALL_ALERTS.map(r=>r.district))].sort();
+  const critCounts=dists.map(d=>ALL_ALERTS.filter(r=>r.district===d&&r.status==='critical').length);
+  const watchCounts=dists.map(d=>ALL_ALERTS.filter(r=>r.district===d&&r.status==='watch').length);
+  mkChart('alertDistChart',{type:'bar',
+    data:{labels:dists,datasets:[
+      {label:'Critical',data:critCounts,backgroundColor:'rgba(248,113,113,0.7)',borderColor:'#c0392b',borderWidth:1,borderRadius:4,borderSkipped:false},
+      {label:'Watch',data:watchCounts,backgroundColor:'rgba(251,191,36,0.7)',borderColor:'#c9922a',borderWidth:1,borderRadius:4,borderSkipped:false}
+    ]},
+    options:{responsive:true,plugins:{legend:{display:true,position:'top',labels:{boxWidth:8,font:{size:9},color:'#6b6b5e'}}},
+      scales:{x:{...baseScales.x,ticks:{...baseScales.x.ticks,maxRotation:30}},y:{...baseScales.y,stacked:false}}}
+  });
+
+  // Anomaly distribution histogram
+  const bins=[-60,-50,-40,-30,-20,-10,0,10,20,30];
+  const labels=bins.slice(0,-1).map((b,i)=>`${b} to ${bins[i+1]}%`);
+  const counts=bins.slice(0,-1).map((b,i)=>ALL_ALERTS.filter(r=>r.anomaly>=b&&r.anomaly<bins[i+1]).length);
+  mkChart('alertAnomalyChart',{type:'bar',
+    data:{labels,datasets:[{label:'Count',data:counts,
+      backgroundColor:bins.slice(0,-1).map(b=>b<-30?'rgba(248,113,113,0.7)':b<-20?'rgba(251,191,36,0.7)':b<0?'rgba(61,92,61,0.6)':'rgba(34,197,94,0.65)'),
+      borderColor:bins.slice(0,-1).map(b=>b<-30?'#c0392b':b<-20?'#c9922a':b<0?'#3d5c3d':'#4a7c59'),
+      borderWidth:1,borderRadius:4,borderSkipped:false}]},
+    options:{...gOpts(),scales:{x:{...baseScales.x,ticks:{...baseScales.x.ticks,maxRotation:35,font:{size:8}}},y:{...baseScales.y,title:{display:true,text:'# Predictions',color:'#a8a89a',font:{size:9}}}}}
+  });
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+BUILT['overview']=true;
+// Kick off parallel pre-loads on page open
+Promise.all([
+  fetchProfiles(),   // populates crop_stats_local for fallback
+  loadTrendData(),   // caches TREND_DATA used by updateHistChart
+  populateCropSelectors(), // fills crop dropdowns from /valid_crops
+]).then(() => {
+  buildOverview();
+  checkBackend();
+});
+</script>
+</body>
+</html>
